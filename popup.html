@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { width: 300px; padding: 10px; font-family: sans-serif; text-align: center; }
+        button { 
+            background: #4CAF50; color: white; border: none; 
+            padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;
+        }
+        button:hover { background: #45a049; }
+        #status { margin-top: 10px; color: #666; font-size: 12px;}
+    </style>
+</head>
+<body>
+    <h3>課表產生器</h3>
+    <p>請先開啟學校課表頁面</p>
+    <button id="btn-generate">生成桌布</button>
+    <div id="status"></div>
+    
+    <canvas id="wallpaperCanvas" width="1080" height="1920" style="display:none;"></canvas>
+    
+    <script src="popup.js"></script>
+</body>
+</html>
