@@ -199,6 +199,79 @@ document.getElementById('btn-download').addEventListener('click', () => {
 
 /**
  * ============================================================
+ * 2-5. 資料持久化 (Save & Load)
+ * ============================================================
+ */
+
+// 存檔：把目前的設定跟課表資料寫入 Chrome Storage
+function saveSettings() {
+    const dataToSave = {
+        config: config,
+        courseSettings: window.courseSettings,
+        classCache: classCache
+    };
+
+    chrome.storage.local.set(dataToSave, () => {
+        // console.log("設定已自動儲存");
+    });
+}
+
+// 讀檔：從 Storage 讀取設定，並更新 UI
+async function loadSettings() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['config', 'courseSettings', 'classCache'], (result) => {
+            if (result.config) {
+                // 合併設定 (避免舊版蓋掉新版缺少的 key)
+                Object.assign(config, result.config);
+            }
+            if (result.courseSettings) {
+                window.courseSettings = result.courseSettings;
+            }
+            if (result.classCache) {
+                classCache = result.classCache;
+            }
+            resolve();
+        });
+    });
+}
+
+// 同步 UI：把讀取到的 Config 數值，「倒回去」HTML 的輸入框上
+function syncUIWithConfig() {
+    // 1. 遍歷 config 的所有 key
+    for (const key in config) {
+        const element = document.getElementById(key);
+        if (element) {
+            // 根據類型還原數值
+            if (element.type === 'checkbox') {
+                element.checked = config[key];
+                
+                // 順便觸發連動 (例如關閉 checkbox 時 disable slider)
+                const sliderId = element.getAttribute('id').replace('show', '').replace('Title', 'TitleSize').replace('Name', 'NameSize').replace('room', 'roomSize').replace('Time', 'TimeSize'); 
+                // (上面的 replace 只是簡單推測，我們直接用 controlPairs 更新比較保險，詳見下方)
+            } else {
+                element.value = config[key];
+            }
+        }
+    }
+
+    // 2. 確保 Checkbox 與 Slider 的 disabled 狀態正確
+    const controlPairs = [
+        { toggleId: 'showClassName', sliderId: 'classNameSize' },
+        { toggleId: 'showWeekTitle', sliderId: 'weekTitleSize' },
+        { toggleId: 'showClassroom', sliderId: 'classroomSize' },
+        { toggleId: 'showTime', sliderId: 'timeSize' }
+    ];
+    controlPairs.forEach(pair => {
+        const checkbox = document.getElementById(pair.toggleId);
+        const slider = document.getElementById(pair.sliderId);
+        if (checkbox && slider) {
+            slider.disabled = !checkbox.checked;
+        }
+    });
+}
+
+/**
+ * ============================================================
  * 3. 核心邏輯：資料抓取 & 處理
  * ============================================================
  */
@@ -504,6 +577,8 @@ function drawWallpaper(courses) {
         }
         ctx.restore(); 
     });
+
+    saveSettings();
 }
 
 /**
@@ -543,16 +618,36 @@ function autoAdjustSettings() {
 
 async function init() {
     try {
-        statusDiv.innerText = "正在讀取課表...";
-        const data = await fetchCourseData();
-        classCache = data; 
-        statusDiv.innerText = `抓取成功！共 ${classCache.length} 堂課`;
-
-        renderCourseList(classCache);
-        autoAdjustSettings();
-        drawWallpaper(classCache);
+        statusDiv.innerText = "讀取設定中...";
         
-        // 綁定下拉選單
+        await loadSettings();
+        
+        syncUIWithConfig();
+
+        if (classCache && classCache.length > 0) {
+            statusDiv.innerText = "已載入上次的紀錄";
+            renderCourseList(classCache);
+            drawWallpaper(classCache);
+        }
+
+        try {
+            const newData = await fetchCourseData();
+            if (newData && newData.length > 0) {
+                classCache = newData;
+                statusDiv.innerText = `抓取成功！共 ${classCache.length} 堂課`;
+
+                autoAdjustSettings(); 
+                
+                renderCourseList(classCache);
+                drawWallpaper(classCache);
+            }
+        } catch (fetchErr) {
+            console.log("無法抓取新資料 (可能不在目標頁面)，維持顯示舊紀錄");
+            if (!classCache || classCache.length === 0) {
+                statusDiv.innerText = "請前往課程網頁面以抓取課表";
+            }
+        }
+        
         const themeSelect = document.getElementById('themeSelect');
         if (themeSelect) {
             themeSelect.addEventListener('change', function() {
@@ -560,14 +655,13 @@ async function init() {
                 if (selectedTheme && typeof applyTheme === 'function') {
                     applyTheme(selectedTheme);
                 }
-                this.value = ""; // 重置，允許重複點擊同個選項
+                this.value = ""; 
             });
         }
 
     } catch (err) {
         console.error(err);
-        statusDiv.innerText = "讀取失敗，請確認網頁狀態";
-        drawWallpaper([]);
+        statusDiv.innerText = "初始化發生錯誤";
     }
 }
 
