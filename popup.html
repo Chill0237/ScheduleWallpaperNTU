@@ -65,16 +65,22 @@
             flex-direction: column; /* 垂直排列 */
             background: white;
         }
-
+        
         .header { margin-bottom: 25px; }
         h3 { margin: 0; color: #2c3e50; font-size: 24px; }
         .subtitle { margin: 5px 0 0; color: #95a5a6; font-size: 14px; }
 
         /* 新增：讓裡面的東西變成橫排 */
         .control-row {
+            height: 45px;
             display: flex;
             gap: 10px; /* 兩個項目中間的空隙 */
             align-items: center; /* 垂直置中 */
+        }
+
+        .label-row label, 
+        .control-item label {
+            white-space: nowrap; /* 🔥 關鍵：強制文字不換行 */
         }
 
         /* 修改：讓被包在 row 裡面的 item 自動平分寬度 */
@@ -98,6 +104,10 @@
 
         .control-row .control-item.flex-3 {
             flex: 3;
+        }
+
+        .control-row .control-item.flex-4 {
+            flex: 4;
         }
 
         .control-row label {
@@ -164,7 +174,7 @@
         /* --- 2. 拉桿 (Range Slider) 樣式 - 這是最複雜的 --- */
         .modern-range {
             -webkit-appearance: none; /* 移除預設樣式 */
-            width: 70%;
+            width: 100%;
             background: transparent;
         }
 
@@ -274,14 +284,14 @@
                     <div class="control-item">
                         <label>背景顏色</label>
                         <div class="color-wrapper">
-                            <input type="color" id="input-bg-color" value="#fdfbf7">
+                            <input type="color" id="bgColor" value="#fdfbf7">
                         </div>
                     </div>
                     
                     <div class="control-item">
-                        <label>星期顏色</label>
+                        <label>字體顏色</label>
                         <div class="color-wrapper">
-                            <input type="color" id="input-text-color" value="#2c3e50">
+                            <input type="color" id="textColor" value="#2c3e50">
                         </div>
                     </div>
                 </div>
@@ -289,14 +299,13 @@
                     <div class="control-item">
                         <label>起始星期</label>
                         <div class="select-wrapper">
-                            <select id="select-ratio" class="modern-select">
+                            <select id="startDay" class="modern-select">
                                 <option value="1" selected>一</option>
                                 <option value="2">二</option>
                                 <option value="3">三</option>
                                 <option value="4">四</option>
                                 <option value="5">五</option>
                                 <option value="6">六</option>
-                                <option value="7">日</option>
                             </select>
                             <div class="select-arrow">▼</div>
                         </div>
@@ -304,14 +313,13 @@
                     <div class="control-item">
                         <label>結束星期</label>
                         <div class="select-wrapper">
-                            <select id="select-ratio" class="modern-select">
+                            <select id="endDay" class="modern-select">
                                 <option value="1">一</option>
                                 <option value="2">二</option>
                                 <option value="3">三</option>
                                 <option value="4">四</option>
                                 <option value="5" selected>五</option>
                                 <option value="6">六</option>
-                                <option value="7">日</option>
                             </select>
                             <div class="select-arrow">▼</div>
                         </div>
@@ -321,7 +329,7 @@
                     <div class="control-item">
                         <label>起始節數</label>
                         <div class="select-wrapper">
-                            <select id="select-ratio" class="modern-select">
+                            <select id="startNum" class="modern-select">
                                 <option value="0">0</option>
                                 <option value="1" selected>1</option>
                                 <option value="2">2</option>
@@ -344,7 +352,7 @@
                     <div class="control-item">
                         <label>結束節數</label>
                         <div class="select-wrapper">
-                            <select id="select-ratio" class="modern-select">
+                            <select id="endNum" class="modern-select">
                                 <option value="0">0</option>
                                 <option value="1" selected>1</option>
                                 <option value="2">2</option>
@@ -369,60 +377,90 @@
                     <div class="control-item flex-1">
                         <label>顯示課名</label>
                         <label class="checkbox-container">
-                            <input type="checkbox" id="show-class-name" checked="true">
+                            <input type="checkbox" id="showClassName" checked="true">
                             <span class="checkmark"></span>
                         </label>
                     </div>
-                    <div class="control-item column-layout flex-3">
+                    <div class="control-item column-layout flex-4">
                         <div class="label-row">
                             <label>課名大小</label>
                         </div>
-                        <input type="range" id="class-name-size" class="modern-range" min="40" max="120" step="5" value="80">
+                        <input type="range" id="classNameSize" class="modern-range" min="0" max="100" step="1" value="24">
                     </div>
                 </div>
                 <div class="control-row">
                     <div class="control-item flex-1">
                         <label>顯示星期</label>
                         <label class="checkbox-container">
-                            <input type="checkbox" id="show-week-title" checked="true">
+                            <input type="checkbox" id="showWeekTitle" checked="true">
                             <span class="checkmark"></span>
                         </label>
                     </div>
-                    <div class="control-item column-layout flex-3">
+                    <div class="control-item column-layout flex-4">
                         <div class="label-row">
                             <label>星期大小</label>
                         </div>
-                        <input type="range" id="week-title-size" class="modern-range" min="40" max="120" step="5" value="80">
+                        <input type="range" id="weekTitleSize" class="modern-range" min="0" max="100" step="1" value="35">
                     </div>
                 </div>
                 <div class="control-row">
                     <div class="control-item flex-1">
                         <label>顯示教室</label>
                         <label class="checkbox-container">
-                            <input type="checkbox" id="show-classroom" checked="true">
+                            <input type="checkbox" id="showClassroom" checked="true">
                             <span class="checkmark"></span>
                         </label>
                     </div>
-                    <div class="control-item column-layout flex-3">
+                    <div class="control-item column-layout flex-4">
                         <div class="label-row">
                             <label>教室大小</label>
                         </div>
-                        <input type="range" id="classroom-size" class="modern-range" min="40" max="120" step="5" value="80">
+                        <input type="range" id="classroomSize" class="modern-range" min="0" max="80" step="1" value="20">
                     </div>
                 </div>
                 <div class="control-row">
                     <div class="control-item flex-1">
                         <label>顯示時間</label>
                         <label class="checkbox-container">
-                            <input type="checkbox" id="show-time" checked="true">
+                            <input type="checkbox" id="showTime" checked="true">
                             <span class="checkmark"></span>
                         </label>
                     </div>
-                    <div class="control-item column-layout flex-3">
+                    <div class="control-item column-layout flex-4">
                         <div class="label-row">
                             <label>時間大小</label>
                         </div>
-                        <input type="range" id="time-size" class="modern-range" min="40" max="120" step="5" value="80">
+                        <input type="range" id="timeSize" class="modern-range" min="0" max="70" step="1" value="35">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-item column-layout">
+                        <div class="label-row">
+                            <label>上方留白</label>
+                        </div>
+                        <input type="range" id="paddingTop" class="modern-range" min="0" max="1200" step="10" value="250">
+                    </div>
+                    <div class="control-item column-layout">
+                        <div class="label-row">
+                            <label>下方留白</label>
+                        </div>
+                        <input type="range" id="paddingBottom" class="modern-range" min="0" max="1200" step="10" value="100">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-item column-layout">
+                        <div class="label-row">
+                            <label>左右留白</label>
+                        </div>
+                        <input type="range" id="paddingX" class="modern-range" min="0" max="500" step="5" value="40">
+                    </div>
+                    <div class="control-item column-layout flex-1">
+                        <div class="label-row">
+                            <div class="label-row">
+                                <label>文字對齊</label>
+                            </div>
+                        </div>
+                        <input type="range" id="textAlign" class="modern-range" min="0" max="2" step="1" value="0">
                     </div>
                 </div>
             </div>
