@@ -3,7 +3,7 @@
   "name": "NTU課表轉桌布",
   "version": "1.0",
   "description": "一鍵將學校課表轉成手機桌布",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png" 

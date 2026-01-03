@@ -3,23 +3,460 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { width: 300px; padding: 10px; font-family: sans-serif; text-align: center; }
-        button { 
-            background: #4CAF50; color: white; border: none; 
-            padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;
+        body {
+            width: 780px; /* 擴充寬度以容納左右兩欄 */
+            height: 550px; /* 固定高度 */
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
         }
-        button:hover { background: #45a049; }
-        #status { margin-top: 10px; color: #666; font-size: 12px;}
+
+        /* Flexbox 佈局核心 */
+        .main-layout {
+            display: flex;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* --- 左側面板 (Canvas) --- */
+        .left-panel {
+            width: 270px; /* 左側固定寬度 */
+            background: #e9ecef;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-shadow: inset -5px 0 10px rgba(0,0,0,0.05); /* 內陰影增加立體感 */
+        }
+
+        .canvas-container {
+            /* 這裡很關鍵：模擬手機比例 */
+            width: 211.5px; 
+            height: 470px; /* 20:9 的比例 */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            border: 4px solid #333; /* 模擬手機邊框 */
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 確保內容完整顯示 */
+        }
+
+        .preview-hint {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- 右側面板 (工具) --- */
+        .right-panel {
+            flex: 1; /* 佔據剩餘空間 */
+            padding: 20px;
+            display: flex;
+            flex-direction: column; /* 垂直排列 */
+            background: white;
+        }
+
+        .header { margin-bottom: 25px; }
+        h3 { margin: 0; color: #2c3e50; font-size: 24px; }
+        .subtitle { margin: 5px 0 0; color: #95a5a6; font-size: 14px; }
+
+        /* 新增：讓裡面的東西變成橫排 */
+        .control-row {
+            display: flex;
+            gap: 10px; /* 兩個項目中間的空隙 */
+            align-items: center; /* 垂直置中 */
+        }
+
+        /* 修改：讓被包在 row 裡面的 item 自動平分寬度 */
+        .control-row .control-item {
+            flex: 1;
+            margin-bottom: 0;
+            display: flex;
+            justify-content: space-between; 
+            align-items: center;
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .control-row .control-item.flex-1 {
+            flex: 1;
+        }
+
+        .control-row .control-item.flex-2 {
+            flex: 2;
+        }
+
+        .control-row .control-item.flex-3 {
+            flex: 3;
+        }
+
+        .control-row label {
+            font-size: 13px;
+            margin-right: 5px;
+        }
+
+        label { font-weight: 600; font-size: 14px; color: #555; }
+        input[type="color"] {
+            border: none;
+            outline: none;
+            background: none;
+            padding: 0;
+        }
+
+        input[type="text"] {
+            padding: 8px 12px;
+            border: 2px solid #eee;
+            border-radius: 6px;
+            width: 180px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .color-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .select-wrapper {
+            position: relative; /* 為了讓箭頭絕對定位 */
+            width: 120px; /* 限制寬度 */
+        }
+
+        .modern-select {
+            width: 100%;
+            padding: 10px;
+            padding-right: 30px; /* 右邊留空間給箭頭 */
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 14px;
+            color: #333;
+            appearance: none; /* 隱藏原生醜醜的箭頭 */
+        }
+
+        .modern-select:focus {
+            border-color: #2196F3;
+            outline: none;
+        }
+
+        /* 自製的小箭頭 */
+        .select-arrow {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #999;
+            pointer-events: none; /* 讓點擊穿透箭頭，直接點到 select */
+        }
+
+        /* --- 2. 拉桿 (Range Slider) 樣式 - 這是最複雜的 --- */
+        .modern-range {
+            -webkit-appearance: none; /* 移除預設樣式 */
+            width: 70%;
+            background: transparent;
+        }
+
+        /* 軌道 (Track) */
+        .modern-range::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+        }
+
+        /* 滑塊 (Thumb) - 那個拖曳的小圓點 */
+        .modern-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #2196F3;
+            margin-top: -6px; /* (Thumb高度 - Track高度) / 2 = (18 - 6)/2 = 6，要設負值往上拉 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+
+        .modern-range:active::-webkit-slider-thumb {
+            transform: scale(1.2); /* 拖曳時稍微變大，增加回饋感 */
+        }
+
+        /* 1. 整體變半透明，滑鼠變禁止符號 */
+        .modern-range:disabled {
+            opacity: 0.5;           /* 讓整個元件變淡 */
+            cursor: not-allowed;    /* 滑鼠移上去會變成紅色禁止圈圈 🚫 */
+            filter: grayscale(100%); /* (選用) 強制變成黑白 */
+        }
+
+        /* 2. 針對滑塊 (Thumb) 特別處理 */
+        /* 如果不加這行，有些瀏覽器在 disabled 時滑塊可能還會看起來像能按 */
+        .modern-range:disabled::-webkit-slider-thumb {
+            background: #999;       /* 強制把藍色改成灰色 */
+            cursor: not-allowed;
+            transform: none;        /* 移除原本 active 時的放大效果 */
+        }
+
+        .divider { height: 1px; background: #eee; margin: 20px 0; }
+        .spacer { flex: 1; } /* 把它下面的東西推到底部 */
+
+        /* 按鈕區 */
+        .action-area {
+            margin-top: auto; /* 靠下對齊 */
+        }
+        #status {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            text-align: right;
+            height: 18px; /* 預留高度避免跳動 */
+        }
+        .btn-row { display: flex; gap: 10px; }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn-primary { background: #2196F3; color: white; }
+        .btn-success { background: #4CAF50; color: white; }
+        button:hover { filter: brightness(0.9); transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        .error-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); color: white;
+            z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 18px; font-weight: bold;
+        }
+        .hidden { display: none !important; }
+
+        .modal-box {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            width: 80%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-box .icon { font-size: 40px; margin-bottom: 10px; }
+        .modal-box h3 { margin: 0 0 10px 0; color: #333; }
+        .modal-box p { color: #666; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
     </style>
 </head>
 <body>
-    <h3>課表產生器</h3>
-    <p>請先開啟學校課表頁面</p>
-    <button id="btn-generate">生成桌布</button>
-    <div id="status"></div>
-    
-    <canvas id="wallpaperCanvas" width="1080" height="1920" style="display:none;"></canvas>
-    
+    <div class="main-layout">
+        <div class="left-panel">
+            <div class="canvas-container">
+                <canvas id="wallpaperCanvas" width="1080" height="2400"></canvas>
+            </div>
+            <div class="preview-hint">預覽模式</div>
+        </div>
+
+        <div class="right-panel">
+
+            <div class="control-group">
+                <div class="control-row">
+                    <div class="control-item">
+                        <label>背景顏色</label>
+                        <div class="color-wrapper">
+                            <input type="color" id="input-bg-color" value="#fdfbf7">
+                        </div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label>星期顏色</label>
+                        <div class="color-wrapper">
+                            <input type="color" id="input-text-color" value="#2c3e50">
+                        </div>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-item">
+                        <label>起始星期</label>
+                        <div class="select-wrapper">
+                            <select id="select-ratio" class="modern-select">
+                                <option value="1" selected>一</option>
+                                <option value="2">二</option>
+                                <option value="3">三</option>
+                                <option value="4">四</option>
+                                <option value="5">五</option>
+                                <option value="6">六</option>
+                                <option value="7">日</option>
+                            </select>
+                            <div class="select-arrow">▼</div>
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <label>結束星期</label>
+                        <div class="select-wrapper">
+                            <select id="select-ratio" class="modern-select">
+                                <option value="1">一</option>
+                                <option value="2">二</option>
+                                <option value="3">三</option>
+                                <option value="4">四</option>
+                                <option value="5" selected>五</option>
+                                <option value="6">六</option>
+                                <option value="7">日</option>
+                            </select>
+                            <div class="select-arrow">▼</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-item">
+                        <label>起始節數</label>
+                        <div class="select-wrapper">
+                            <select id="select-ratio" class="modern-select">
+                                <option value="0">0</option>
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">A</option>
+                                <option value="12">B</option>
+                                <option value="13">C</option>
+                                <option value="14">D</option>
+                            </select>
+                            <div class="select-arrow">▼</div>
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <label>結束節數</label>
+                        <div class="select-wrapper">
+                            <select id="select-ratio" class="modern-select">
+                                <option value="0">0</option>
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10" selected>10</option>
+                                <option value="11">A</option>
+                                <option value="12">B</option>
+                                <option value="13">C</option>
+                                <option value="14">D</option>
+                            </select>
+                            <div class="select-arrow">▼</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-item flex-1">
+                        <label>顯示課名</label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="show-class-name" checked="true">
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+                    <div class="control-item column-layout flex-3">
+                        <div class="label-row">
+                            <label>課名大小</label>
+                        </div>
+                        <input type="range" id="class-name-size" class="modern-range" min="40" max="120" step="5" value="80">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-item flex-1">
+                        <label>顯示星期</label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="show-week-title" checked="true">
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+                    <div class="control-item column-layout flex-3">
+                        <div class="label-row">
+                            <label>星期大小</label>
+                        </div>
+                        <input type="range" id="week-title-size" class="modern-range" min="40" max="120" step="5" value="80">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-item flex-1">
+                        <label>顯示教室</label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="show-classroom" checked="true">
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+                    <div class="control-item column-layout flex-3">
+                        <div class="label-row">
+                            <label>教室大小</label>
+                        </div>
+                        <input type="range" id="classroom-size" class="modern-range" min="40" max="120" step="5" value="80">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-item flex-1">
+                        <label>顯示時間</label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="show-time" checked="true">
+                            <span class="checkmark"></span>
+                        </label>
+                    </div>
+                    <div class="control-item column-layout flex-3">
+                        <div class="label-row">
+                            <label>時間大小</label>
+                        </div>
+                        <input type="range" id="time-size" class="modern-range" min="40" max="120" step="5" value="80">
+                    </div>
+                </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="action-area">
+                <div id="status"></div>
+                <div class="btn-row">
+                    <button id="btn-download" class="btn-success">下載圖片</button>
+                </div>
+                <a id="link-course" href="#" style="display:none;"></a>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="wrong-website" class="hidden error-overlay">
+        <div class="modal-box">
+            <div class="icon">⚠️</div>
+            <h3>網址錯誤</h3>
+            <p>此功能僅適用於台大課程網的結果課表頁面</p>
+            <button id="btn-redirect">前往正確頁面</button>
+        </div>
+    </div>
+    <div id="not-logged-in" class="hidden error-overlay">
+        <div class="modal-box">
+            <div class="icon">⚠️</div>
+            <h3>尚未登入</h3>
+            <p>請先登入以正確顯示結果課表</p>
+            <button id="btn-login">登入</button>
+        </div>
+    </div>
+
     <script src="popup.js"></script>
 </body>
 </html>
