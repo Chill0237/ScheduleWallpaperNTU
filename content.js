@@ -1,15 +1,13 @@
-// prevent double injection
 if (typeof window.hasScheduleScraperRun === 'undefined') {
     window.hasScheduleScraperRun = true;
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === "scrape_schedule") {
             const courses = [];
-            
             const rows = document.querySelectorAll('.tr');
             
             rows.forEach((row, rowIndex) => {
-                if (rowIndex === 0) return;
+                if (rowIndex === 0) return; 
 
                 const cells = row.querySelectorAll('.td');
                 if (cells.length < 2) return;
@@ -25,7 +23,6 @@ if (typeof window.hasScheduleScraperRun === 'undefined') {
                     
                     if (courseLink) {
                         const courseName = courseLink.innerText.trim();
-                        
                         const ps = cell.querySelectorAll('p');
                         let room = "";
                         let professor = "";
@@ -34,8 +31,8 @@ if (typeof window.hasScheduleScraperRun === 'undefined') {
                         if (ps.length > 1) professor = ps[1].innerText.trim();
 
                         courses.push({
-                            day_index: dayIndex, // 1=Mon
-                            period: periodText,  // 0, 1... A, B
+                            day_index: dayIndex,
+                            period: periodText,
                             name: courseName,
                             room: room,
                             professor: professor
@@ -44,9 +41,8 @@ if (typeof window.hasScheduleScraperRun === 'undefined') {
                 }
             });
 
-            console.log("解析完成，課程數:", courses.length);
             sendResponse({ status: "success", data: courses });
         }
-        return true;
+        return true; 
     });
 }

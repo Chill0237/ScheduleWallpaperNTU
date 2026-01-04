@@ -1,177 +1,170 @@
 /**
  * ============================================================
- * 0. 確保網址正確與登入狀態
- * ============================================================
- */
-
-// const targetUrl = "https://course.ntu.edu.tw/result/final/table";
-
-// // check in correct website, or redirect
-// document.getElementById('btn-redirect').addEventListener('click', () => {
-//     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-//         const currentTabId = tabs[0].id;
-//         chrome.tabs.update(currentTabId, { url: targetUrl });
-        
-//         window.close();
-//     });
-// });
-
-// function clickLoginButton() {
-//     const loginBtn = document.querySelector('a[href="/login"]');
-//     loginBtn.click();
-//     return true;
-// }
-// // check login status
-// document.getElementById('btn-login').addEventListener('click', () => {
-//     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-//         chrome.scripting.executeScript({
-//             target: { tabId: tabs[0].id },
-//             func: clickLoginButton,
-//             }, (results) => {
-//             if (chrome.runtime.lastError) {
-//                 console.error(chrome.runtime.lastError);
-//                 return;
-//             }}
-//         );
-//     });
-//     window.close();
-// });
-
-// function checkLoginStatus() {
-//     return !!document.querySelector(".tr");
-// }
-
-// const wrongWebsite = document.getElementById('wrong-website');
-// const notLoggedIn = document.getElementById('not-logged-in');
-// chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-//     const currentUrl = tabs[0].url;
-//     const targetUrl = "course.ntu.edu.tw/result/final/table";
-
-//     if (!currentUrl.includes(targetUrl)) wrongWebsite.classList.remove('hidden');
-//     else {
-//         wrongWebsite.classList.add('hidden');
-        
-//         chrome.scripting.executeScript({
-//             target: { tabId: tabs[0].id },
-//             func: checkLoginStatus,
-//             }, (results) => {
-//             if (chrome.runtime.lastError) {
-//                 console.error(chrome.runtime.lastError);
-//                 return;
-//             }
-
-//             const foundTable = results[0].result;
-
-//             if (results[0].result) notLoggedIn.classList.add('hidden');
-//             else notLoggedIn.classList.remove('hidden');
-//         });
-//     }
-// });
-
-/**
- * ============================================================
  * 1. 全域變數與設定
  * ============================================================
  */
-let classCache = []; 
-
-// Config 的 Key 必須跟 HTML ID 完全一致
-const config = {
-    // 外觀顏色
-    bgColor: "#fdfbf7",
-    textColor: "#2c3e50",
-
-    // 表格範圍
-    startDay: 1,
-    endDay: 5,
-    startNum: 1,
-    endNum: 10,
-
-    // 顯示控制
-    showClassName: true,
-    showWeekTitle: true,
-    showClassroom: true,
-    showTime: true,
-
-    // 字體大小
-    classNameSize: 24,
-    weekTitleSize: 35,
-    classroomSize: 20,
-    timeSize: 35,
-
-    // 版面留白設定
-    paddingX: 40,
-    paddingTop: 250,
-    paddingBottom: 100,
-    textAlign: 0
+const DEFAULT_CONFIG = {
+    bgColor: "#fdfbf7", textColor: "#2c3e50",
+    startDay: 1, endDay: 5, startNum: 1, endNum: 10,
+    showClassName: true, showWeekTitle: true, showClassroom: true, showTime: true,
+    classNameSize: 24, weekTitleSize: 35, classroomSize: 20, timeSize: 35,
+    textOffsetY: 50, borderRadius: 12,
+    paddingX: 40, paddingTop: 250, paddingBottom: 100, textAlign: 0
 };
 
-// 全域變數：存儲單科客製化設定
-// key: 課程原名, value: { alias, bgColor, textColor }
+let config = { ...DEFAULT_CONFIG };
+let classCache = []; 
 window.courseSettings = {}; 
 
-// 主題色票庫
+/**
+ * 15 色主題庫
+ */
 const themes = {
-    pastel: ["#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff", "#bdb2ff", "#ffc6ff"],
-    cool:   ["#caf0f8", "#ade8f4", "#90e0ef", "#48cae4", "#00b4d8", "#0096c7", "#0077b6", "#023e8a"],
-    dark:   ["#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51", "#6d6875", "#b5838d", "#e5989b"],
-    morandi:["#7A7265", "#A6A59E", "#B09F85", "#D3C4BE", "#E2D3C1", "#8F9E9D", "#778691", "#686A6C"]
+    pastel: {
+        global: { bg: "#fdfbf7", text: "#4a4a4a" },
+        courses: [
+            { bg: "#FFB3BA", text: "#5c3a3a" }, { bg: "#FFDFBA", text: "#5c4d3a" }, 
+            { bg: "#FFFFBA", text: "#57593a" }, { bg: "#BAFFC9", text: "#3a5c3d" }, 
+            { bg: "#BAE1FF", text: "#3a465c" }, { bg: "#E6B3FF", text: "#463a5c" }, 
+            { bg: "#FFC3A0", text: "#5c3a3a" }, { bg: "#D5AAFF", text: "#463a5c" }, 
+            { bg: "#B5EAD7", text: "#3a555c" }, { bg: "#C7CEEA", text: "#3a465c" }, 
+            { bg: "#FF9AA2", text: "#5c3a3a" }, { bg: "#FFDAC1", text: "#5c4d3a" }, 
+            { bg: "#E2F0CB", text: "#3a5c3d" }, { bg: "#A0E7E5", text: "#3a555c" }, 
+            { bg: "#F49AC2", text: "#5c3a58" }
+        ]
+    },
+    cool: {
+        global: { bg: "#f0f9ff", text: "#003554" },
+        courses: [
+            { bg: "#0077B6", text: "#ffffff" }, { bg: "#00B4D8", text: "#ffffff" }, 
+            { bg: "#90E0EF", text: "#03045e" }, { bg: "#023E8A", text: "#ffffff" }, 
+            { bg: "#48CAE4", text: "#023e8a" }, { bg: "#0096C7", text: "#ffffff" }, 
+            { bg: "#5E60CE", text: "#ffffff" }, { bg: "#6930C3", text: "#ffffff" }, 
+            { bg: "#5390D9", text: "#ffffff" }, { bg: "#4EA8DE", text: "#ffffff" }, 
+            { bg: "#56CFE1", text: "#003554" }, { bg: "#64DFDF", text: "#003554" }, 
+            { bg: "#72EFDD", text: "#003554" }, { bg: "#480CA8", text: "#ffffff" }, 
+            { bg: "#219EBC", text: "#ffffff" }
+        ]
+    },
+    dark: {
+        global: { bg: "#212529", text: "#f8f9fa" },
+        courses: [
+            { bg: "#264653", text: "#ffffff" }, { bg: "#2A9D8F", text: "#ffffff" }, 
+            { bg: "#E76F51", text: "#ffffff" }, { bg: "#F4A261", text: "#264653" }, 
+            { bg: "#1D3557", text: "#ffffff" }, { bg: "#457B9D", text: "#ffffff" }, 
+            { bg: "#E63946", text: "#ffffff" }, { bg: "#6D6875", text: "#ffffff" }, 
+            { bg: "#B5838D", text: "#ffffff" }, { bg: "#355070", text: "#ffffff" }, 
+            { bg: "#6D597A", text: "#ffffff" }, { bg: "#B56576", text: "#ffffff" }, 
+            { bg: "#E56B6F", text: "#ffffff" }, { bg: "#0F4C5C", text: "#ffffff" }, 
+            { bg: "#2B2D42", text: "#ffffff" }
+        ]
+    },
+    morandi: {
+        global: { bg: "#ebeae6", text: "#4b4b4b" },
+        courses: [
+            { bg: "#7A7265", text: "#ffffff" }, { bg: "#A6A59E", text: "#ffffff" }, 
+            { bg: "#B09F85", text: "#ffffff" }, { bg: "#D3C4BE", text: "#5c4d48" }, 
+            { bg: "#E2D3C1", text: "#5c544d" }, { bg: "#8F9E9D", text: "#ffffff" }, 
+            { bg: "#778691", text: "#ffffff" }, { bg: "#686A6C", text: "#ffffff" }, 
+            { bg: "#9A8C98", text: "#ffffff" }, { bg: "#C9ADA7", text: "#5c4d48" }, 
+            { bg: "#4A4E69", text: "#ffffff" }, { bg: "#22223B", text: "#ffffff" }, 
+            { bg: "#A5A58D", text: "#ffffff" }, { bg: "#6B705C", text: "#ffffff" }, 
+            { bg: "#CB997E", text: "#ffffff" }
+        ]
+    },
+    nature: {
+        global: { bg: "#f1f8e9", text: "#33691e" },
+        courses: [
+            { bg: "#606C38", text: "#ffffff" }, { bg: "#283618", text: "#ffffff" },
+            { bg: "#FEFAE0", text: "#283618" }, { bg: "#DDA15E", text: "#ffffff" },
+            { bg: "#BC6C25", text: "#ffffff" }, { bg: "#588157", text: "#ffffff" },
+            { bg: "#3A5A40", text: "#ffffff" }, { bg: "#A3B18A", text: "#283618" },
+            { bg: "#DAD7CD", text: "#3a5a40" }, { bg: "#8DA399", text: "#ffffff" },
+            { bg: "#4F772D", text: "#ffffff" }, { bg: "#90A955", text: "#ffffff" },
+            { bg: "#31572C", text: "#ffffff" }, { bg: "#132A13", text: "#ffffff" },
+            { bg: "#4F5D75", text: "#ffffff" }
+        ]
+    },
+    retro: {
+        global: { bg: "#f4f1de", text: "#3d405b" },
+        courses: [
+            { bg: "#E07A5F", text: "#ffffff" }, { bg: "#3D405B", text: "#ffffff" },
+            { bg: "#81B29A", text: "#ffffff" }, { bg: "#F2CC8F", text: "#3d405b" },
+            { bg: "#D4A373", text: "#ffffff" }, { bg: "#E5989B", text: "#ffffff" },
+            { bg: "#B5838D", text: "#ffffff" }, { bg: "#6D6875", text: "#ffffff" },
+            { bg: "#D62828", text: "#ffffff" }, { bg: "#F77F00", text: "#ffffff" },
+            { bg: "#FCBF49", text: "#3d405b" }, { bg: "#EAE2B7", text: "#3d405b" },
+            { bg: "#003049", text: "#ffffff" }, { bg: "#588157", text: "#ffffff" },
+            { bg: "#A8DADC", text: "#1d3557" }
+        ]
+    },
+    neon: {
+        global: { bg: "#0d0d0d", text: "#ffffff" },
+        courses: [
+            { bg: "#F72585", text: "#ffffff" }, { bg: "#7209B7", text: "#ffffff" },
+            { bg: "#3A0CA3", text: "#ffffff" }, { bg: "#4361EE", text: "#ffffff" },
+            { bg: "#4CC9F0", text: "#000000" }, { bg: "#FF00FF", text: "#ffffff" },
+            { bg: "#00FFFF", text: "#000000" }, { bg: "#00FF00", text: "#000000" },
+            { bg: "#FFFF00", text: "#000000" }, { bg: "#FF0000", text: "#ffffff" },
+            { bg: "#9D4EDD", text: "#ffffff" }, { bg: "#FF9E00", text: "#000000" },
+            { bg: "#00BBF9", text: "#ffffff" }, { bg: "#F15BB5", text: "#000000" },
+            { bg: "#9B5DE5", text: "#ffffff" }
+        ]
+    },
+    coffee: {
+        global: { bg: "#f5ebe0", text: "#4a403a" },
+        courses: [
+            { bg: "#D6CCC2", text: "#4a403a" }, { bg: "#E3D5CA", text: "#4a403a" },
+            { bg: "#D5BDAF", text: "#4a403a" }, { bg: "#B08968", text: "#ffffff" },
+            { bg: "#7F5539", text: "#ffffff" }, { bg: "#9C6644", text: "#ffffff" },
+            { bg: "#BB8588", text: "#ffffff" }, { bg: "#D8E2DC", text: "#4a403a" },
+            { bg: "#FFE8D6", text: "#4a403a" }, { bg: "#606C38", text: "#ffffff" },
+            { bg: "#283618", text: "#ffffff" }, { bg: "#FEFAE0", text: "#4a403a" },
+            { bg: "#DDA15E", text: "#ffffff" }, { bg: "#BC6C25", text: "#ffffff" },
+            { bg: "#A47148", text: "#ffffff" }
+        ]
+    }
 };
 
-const controlGroup = document.querySelector('.control-group');
 const statusDiv = document.getElementById('status');
 
 /**
  * ============================================================
- * 2. 事件監聽處理
+ * 2. 事件監聽
  * ============================================================
  */
-
-// 2-1. 通用輸入處理
 function handleInput(e) {
     const target = e.target;
     const key = target.id;
-
     if (key && key in config) {
-        let value;
-        if (target.type === 'checkbox') {
-            value = target.checked;
-        } else if (target.type === 'number' || target.type === 'range' || target.tagName === 'SELECT') {
-            value = Number(target.value);
-        } else {
-            value = target.value;
-        }
+        let value = target.type === 'checkbox' ? target.checked : 
+                   (target.type === 'number' || target.type === 'range' || target.tagName === 'SELECT') ? Number(target.value) : target.value;
         config[key] = value;
         drawWallpaper(classCache);
     }
 }
 
-// 綁定全域輸入事件 (事件委派)
-if (controlGroup) {
-    controlGroup.addEventListener('input', handleInput);
-    controlGroup.addEventListener('change', handleInput);
-}
+const controlGroups = document.querySelectorAll('.control-group');
+controlGroups.forEach(group => {
+    group.addEventListener('input', handleInput);
+    group.addEventListener('change', handleInput);
+});
 
-// 2-2. Checkbox 與 Slider 連動 (Disable 功能)
 const controlPairs = [
     { toggleId: 'showClassName', sliderId: 'classNameSize' },
     { toggleId: 'showWeekTitle', sliderId: 'weekTitleSize' },
     { toggleId: 'showClassroom', sliderId: 'classroomSize' },
     { toggleId: 'showTime', sliderId: 'timeSize' }
 ];
-
 controlPairs.forEach(pair => {
     const checkbox = document.getElementById(pair.toggleId);
     const slider = document.getElementById(pair.sliderId);
     if (checkbox && slider) {
         slider.disabled = !checkbox.checked;
-        checkbox.addEventListener('change', (e) => {
-            slider.disabled = !e.target.checked;
-        });
+        checkbox.addEventListener('change', (e) => { slider.disabled = !e.target.checked; });
     }
 });
 
-// 2-3. Tab 分頁切換
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -182,118 +175,113 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// 2-4. 下載圖片
-const formatDate = (date) => {
-    const pad = (n) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}`;
-};
-
 document.getElementById('btn-download').addEventListener('click', () => {
     const canvas = document.getElementById('wallpaperCanvas');
     const link = document.createElement('a');
-    link.download = `wallpaper_${formatDate(new Date())}.png`;
+    const date = new Date();
+    const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
+    const timeStr = `${date.getHours().toString().padStart(2,'0')}-${date.getMinutes().toString().padStart(2,'0')}-${date.getSeconds().toString().padStart(2,'0')}`;
+    link.download = `NTU_Wallpaper_${dateStr}_${timeStr}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
     statusDiv.innerText = "下載完成！";
 });
 
+document.getElementById('btn-reset').addEventListener('click', async () => {
+    if (!confirm("確定要重置所有設定嗎？\n這將清除所有自訂顏色、課名修改與快取資料。")) return;
+
+    statusDiv.innerText = "正在重置...";
+    config = { ...DEFAULT_CONFIG };
+    window.courseSettings = {};
+    classCache = [];
+
+    await chrome.storage.local.clear();
+    syncUIWithConfig();
+    document.getElementById('course-list-container').innerHTML = '<div style="text-align:center; color:#999; padding:20px;">尚未抓取資料</div>';
+    
+    const newData = await fetchCourseData();
+    const warningBar = document.getElementById('warning-bar');
+
+    if (Array.isArray(newData)) {
+        classCache = newData;
+        statusDiv.innerText = `重置成功！目前共 ${classCache.length} 堂課`;
+        if(warningBar) warningBar.classList.add('hidden');
+        autoAdjustSettings(); 
+        renderCourseList(classCache);
+        drawWallpaper(classCache);
+        saveSettings();
+    } else {
+        statusDiv.innerText = "重置完成 (目前無法抓取資料)";
+        if(warningBar) warningBar.classList.remove('hidden');
+        drawWallpaper([]);
+    }
+});
+
 /**
  * ============================================================
- * 2-5. 資料持久化 (Save & Load)
+ * 3. 資料處理
  * ============================================================
  */
-
-// 存檔：把目前的設定跟課表資料寫入 Chrome Storage
 function saveSettings() {
-    const dataToSave = {
-        config: config,
-        courseSettings: window.courseSettings,
-        classCache: classCache
-    };
-
-    chrome.storage.local.set(dataToSave, () => {
-        // console.log("設定已自動儲存");
-    });
+    chrome.storage.local.set({ config, courseSettings: window.courseSettings, classCache });
 }
 
-// 讀檔：從 Storage 讀取設定，並更新 UI
 async function loadSettings() {
     return new Promise((resolve) => {
         chrome.storage.local.get(['config', 'courseSettings', 'classCache'], (result) => {
-            if (result.config) {
-                // 合併設定 (避免舊版蓋掉新版缺少的 key)
-                Object.assign(config, result.config);
-            }
-            if (result.courseSettings) {
-                window.courseSettings = result.courseSettings;
-            }
-            if (result.classCache) {
-                classCache = result.classCache;
-            }
+            if (result.config) Object.assign(config, result.config);
+            if (result.courseSettings) window.courseSettings = result.courseSettings;
+            if (result.classCache) classCache = result.classCache;
             resolve();
         });
     });
 }
 
-// 同步 UI：把讀取到的 Config 數值，「倒回去」HTML 的輸入框上
 function syncUIWithConfig() {
-    // 1. 遍歷 config 的所有 key
     for (const key in config) {
         const element = document.getElementById(key);
         if (element) {
-            // 根據類型還原數值
-            if (element.type === 'checkbox') {
-                element.checked = config[key];
-                
-                // 順便觸發連動 (例如關閉 checkbox 時 disable slider)
-                const sliderId = element.getAttribute('id').replace('show', '').replace('Title', 'TitleSize').replace('Name', 'NameSize').replace('room', 'roomSize').replace('Time', 'TimeSize'); 
-                // (上面的 replace 只是簡單推測，我們直接用 controlPairs 更新比較保險，詳見下方)
-            } else {
-                element.value = config[key];
-            }
+            if (element.type === 'checkbox') element.checked = config[key];
+            else element.value = config[key];
         }
     }
+    const bgInput = document.getElementById('bgColor');
+    const textInput = document.getElementById('textColor');
+    if (bgInput) bgInput.value = config.bgColor;
+    if (textInput) textInput.value = config.textColor;
 
-    // 2. 確保 Checkbox 與 Slider 的 disabled 狀態正確
-    const controlPairs = [
-        { toggleId: 'showClassName', sliderId: 'classNameSize' },
-        { toggleId: 'showWeekTitle', sliderId: 'weekTitleSize' },
-        { toggleId: 'showClassroom', sliderId: 'classroomSize' },
-        { toggleId: 'showTime', sliderId: 'timeSize' }
-    ];
     controlPairs.forEach(pair => {
         const checkbox = document.getElementById(pair.toggleId);
         const slider = document.getElementById(pair.sliderId);
-        if (checkbox && slider) {
-            slider.disabled = !checkbox.checked;
-        }
+        if (checkbox && slider) slider.disabled = !checkbox.checked;
     });
 }
 
-/**
- * ============================================================
- * 3. 核心邏輯：資料抓取 & 處理
- * ============================================================
- */
 function fetchCourseData() {
     return new Promise((resolve, reject) => {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs.length === 0) { reject("找不到目前的頁籤"); return; }
             const activeTab = tabs[0];
             
+            const targetPattern = /course\.ntu\.edu\.tw\/result\/.*\/table/;
+
+            if (!activeTab.url || !targetPattern.test(activeTab.url)) {
+                console.log("非目標網站，跳過抓取");
+                resolve(null);
+                return;
+            }
+            
             chrome.scripting.executeScript({
                 target: { tabId: activeTab.id },
                 files: ['content.js']
             }, () => {
-                if (chrome.runtime.lastError) {
-                    reject(`注入腳本失敗: ${chrome.runtime.lastError.message}`);
-                    return;
+                if (chrome.runtime.lastError) { 
+                    console.warn("注入失敗 (可能是權限不足):", chrome.runtime.lastError);
+                    resolve(null); 
+                    return; 
                 }
                 chrome.tabs.sendMessage(activeTab.id, { action: "scrape_schedule" }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        reject("連線失敗，請確認在正確的課程網頁面");
-                        return;
-                    }
+                    if (chrome.runtime.lastError) { resolve(null); return; }
                     if (response && response.data) resolve(response.data);
                     else resolve([]);
                 });
@@ -302,16 +290,18 @@ function fetchCourseData() {
     });
 }
 
-/**
- * Helper: 取得排序後的不重複課名列表 (依照時間排序)
- */
+function shuffleArray(array) {
+    let newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+}
+
 function getSortedUniqueNames(courses) {
     if (!courses) return [];
-    const pMap = {
-        "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, 
-        "6": 6, "7": 7, "8": 8, "9": 9, "10": 10,
-        "A": 11, "B": 12, "C": 13, "D": 14
-    };
+    const pMap = { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "A": 11, "B": 12, "C": 13, "D": 14 };
     const courseMinTime = {};
 
     courses.forEach(c => {
@@ -336,7 +326,7 @@ function getSortedUniqueNames(courses) {
 
 /**
  * ============================================================
- * 4. UI 渲染：課程列表與主題
+ * 4. 渲染列表與主題
  * ============================================================
  */
 function renderCourseList(courses) {
@@ -344,7 +334,7 @@ function renderCourseList(courses) {
     container.innerHTML = ''; 
 
     if (!courses || courses.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">請先抓取課表資料</div>';
+        container.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">尚未抓取資料</div>';
         return;
     }
 
@@ -354,7 +344,7 @@ function renderCourseList(courses) {
     uniqueNames.forEach((name, index) => {
         if (!window.courseSettings[name]) {
             window.courseSettings[name] = {
-                alias: "", 
+                alias: "", roomAlias: "", 
                 bgColor: defaultPalette[index % defaultPalette.length],
                 textColor: "#333333"
             };
@@ -363,21 +353,29 @@ function renderCourseList(courses) {
 
         const item = document.createElement('div');
         item.className = 'course-item';
+        
         item.innerHTML = `
             <div class="course-info">
                 <span class="course-original-name">${name}</span>
-                <input type="text" class="input-alias" placeholder="自訂顯示名稱" value="${settings.alias}">
+                <div style="display:flex; gap:8px;">
+                    <input type="text" class="input-alias" placeholder="自訂課名" value="${settings.alias}" style="flex:1;">
+                    <input type="text" class="input-alias input-room-alias" placeholder="自訂教室" value="${settings.roomAlias || ''}" style="flex:1;">
+                </div>
             </div>
             <div class="circle-color-wrapper" title="背景顏色" style="margin-right:5px;">
                 <input type="color" class="circle-color-input bg-color-picker" value="${settings.bgColor}">
             </div>
-            <div class="circle-color-wrapper" title="文字顏色" style="border: 1px solid #ccc;">
+            <div class="circle-color-wrapper" title="文字顏色" style="border:1px solid #ccc;">
                 <input type="color" class="circle-color-input text-color-picker" value="${settings.textColor}">
             </div>
         `;
 
         item.querySelector('.input-alias').addEventListener('input', (e) => {
             window.courseSettings[name].alias = e.target.value;
+            drawWallpaper(classCache);
+        });
+        item.querySelector('.input-room-alias').addEventListener('input', (e) => {
+            window.courseSettings[name].roomAlias = e.target.value;
             drawWallpaper(classCache);
         });
         item.querySelector('.bg-color-picker').addEventListener('input', (e) => {
@@ -393,25 +391,42 @@ function renderCourseList(courses) {
     });
 }
 
-// 全域函式 (供下拉選單呼叫)
 window.applyTheme = function(themeName) {
     if (!classCache || classCache.length === 0) {
         alert("請先抓取課表！");
         return;
     }
-    const palette = themes[themeName];
+    
+    const themeData = themes[themeName];
+    
+    if (themeData.global) {
+        config.bgColor = themeData.global.bg;
+        config.textColor = themeData.global.text;
+        
+        const bgInput = document.getElementById('bgColor');
+        const textInput = document.getElementById('textColor');
+        
+        if (bgInput) {
+            bgInput.value = config.bgColor;
+            bgInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (textInput) {
+            textInput.value = config.textColor;
+            textInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
+    const shuffledPalette = shuffleArray(themeData.courses);
     const uniqueNames = getSortedUniqueNames(classCache);
 
     uniqueNames.forEach((name, index) => {
         if (window.courseSettings[name]) {
-            window.courseSettings[name].bgColor = palette[index % palette.length];
-            if (themeName === 'dark' || themeName === 'morandi') {
-                window.courseSettings[name].textColor = "#ffffff";
-            } else {
-                window.courseSettings[name].textColor = "#333333";
-            }
+            const colorPair = shuffledPalette[index % shuffledPalette.length];
+            window.courseSettings[name].bgColor = colorPair.bg;
+            window.courseSettings[name].textColor = colorPair.text;
         }
     });
+    
     renderCourseList(classCache);
     drawWallpaper(classCache);
 };
@@ -426,19 +441,10 @@ function drawWallpaper(courses) {
     const canvas = document.getElementById('wallpaperCanvas');
     const ctx = canvas.getContext('2d');
     
-    // 資料
-    const timeLabels = [
-        "07:10-08:00", "08:10-09:00", "09:10-10:00", "10:20-11:10", "11:20-12:10", "12:20-13:10", 
-        "13:20-14:10", "14:20-15:10", "15:30-16:20", "16:30-17:20", "17:30-18:20", "18:25-19:15", 
-        "19:20-20:10", "20:15-21:05", "21:10-22:00"
-    ];
-    const periodMap = {
-        "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10,
-        "A": 11, "B": 12, "C": 13, "D": 14
-    };
+    const timeLabels = ["07:10-08:00", "08:10-09:00", "09:10-10:00", "10:20-11:10", "11:20-12:10", "12:20-13:10", "13:20-14:10", "14:20-15:10", "15:30-16:20", "16:30-17:20", "17:30-18:20", "18:25-19:15", "19:20-20:10", "20:15-21:05", "21:10-22:00"];
+    const periodMap = { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "A": 11, "B": 12, "C": 13, "D": 14 };
     const defaultColors = ["#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff", "#bdb2ff", "#ffc6ff"];
 
-    // 參數計算
     const W = 1080, H = 2400;
     const titleAreaHeight = config.showWeekTitle ? (config.weekTitleSize + 30) : 0;
     const headerH = config.paddingTop + titleAreaHeight;    
@@ -447,17 +453,14 @@ function drawWallpaper(courses) {
     let timelineWidth = 0;
     if (config.showTime) {
         ctx.font = `bold ${config.timeSize}px sans-serif`;
-        const textMetric = ctx.measureText("00:00"); 
-        timelineWidth = textMetric.width + 30; 
+        timelineWidth = ctx.measureText("00:00").width + 30; 
     }
     const paddingLeft = config.paddingX + timelineWidth; 
     const paddingRight = config.paddingX;
 
-    // 清空
     ctx.fillStyle = config.bgColor; 
     ctx.fillRect(0, 0, W, H);
 
-    // 格子大小
     const totalDays = config.endDay - config.startDay + 1;
     const safeDays = totalDays > 0 ? totalDays : 1;
     const colWidth = (W - paddingLeft - paddingRight) / safeDays;
@@ -466,13 +469,10 @@ function drawWallpaper(courses) {
     const safePeriods = totalPeriods > 0 ? totalPeriods : 10;
     const rowHeight = (H - headerH - footerH) / safePeriods;
 
-    // 1. 繪製上方星期
     const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     ctx.font = `bold ${config.weekTitleSize}px sans-serif`;
     ctx.fillStyle = config.textColor;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom"; 
-
+    ctx.textAlign = "center"; ctx.textBaseline = "bottom"; 
     for (let i = 0; i < safeDays; i++) {
         const idx = (config.startDay - 1) + i; 
         if (idx < dayNames.length && config.showWeekTitle) {
@@ -481,7 +481,6 @@ function drawWallpaper(courses) {
         }
     }
 
-    // 2. 繪製左側時間
     if (config.showTime) {
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         const centerAxisX = paddingLeft - (timelineWidth / 2);
@@ -496,16 +495,11 @@ function drawWallpaper(courses) {
                 ctx.fillText(startT, centerAxisX, y + rowHeight / 2 - yOffset);
                 ctx.fillText(endT, centerAxisX, y + rowHeight / 2 + yOffset);
             }
-            // 分隔線
             ctx.strokeStyle = "rgba(0,0,0,0.05)";
-            ctx.beginPath();
-            ctx.moveTo(paddingLeft, y);
-            ctx.lineTo(W - paddingRight, y);
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(paddingLeft, y); ctx.lineTo(W - paddingRight, y); ctx.stroke();
         }
     }
-
-    // Helper: 換行
+    
     const getLines = (text, maxWidth) => {
         if (!text) return [];
         const words = text.split('');
@@ -520,7 +514,6 @@ function drawWallpaper(courses) {
         return lines;
     };
 
-    // 3. 繪製課程
     courses.forEach(course => {
         if (course.day_index < config.startDay || course.day_index > config.endDay) return;
         const pIdx = periodMap[course.period];
@@ -534,20 +527,19 @@ function drawWallpaper(courses) {
         const h = rowHeight - 10;
         
         const settings = (window.courseSettings && window.courseSettings[course.name]) || {
-            alias: "",
+            alias: "", roomAlias: "",
             bgColor: defaultColors[course.name.length % defaultColors.length],
             textColor: "#333333"
         };
 
-        // 背景
         ctx.fillStyle = settings.bgColor;
         ctx.save();
         ctx.beginPath();
-        ctx.roundRect(x, y, w, h, 12);
+        if (typeof ctx.roundRect === 'function') ctx.roundRect(x, y, w, h, config.borderRadius);
+        else ctx.rect(x, y, w, h);
         ctx.fill();
         ctx.clip(); 
 
-        // 對齊計算
         const paddingInside = 10;
         let textX;
         if (config.textAlign === 1) { ctx.textAlign = "center"; textX = x + w / 2; }
@@ -557,33 +549,54 @@ function drawWallpaper(courses) {
         ctx.textBaseline = "top";
         ctx.fillStyle = settings.textColor;
 
-        let currentY = y + paddingInside;
+        let contentHeight = 0;
+        let nameLines = [];
+        const nameFont = `bold ${config.classNameSize}px sans-serif`;
+        const roomFont = `${config.classroomSize}px sans-serif`;
+        const nameLineHeight = config.classNameSize * 1.3;
+        const gap = config.classNameSize * 0.2;
+
         const displayName = (settings.alias && settings.alias.trim() !== "") ? settings.alias : course.name;
+        const displayRoom = (settings.roomAlias && settings.roomAlias.trim() !== "") ? settings.roomAlias : course.room;
 
         if (config.showClassName) {
-            ctx.font = `bold ${config.classNameSize}px sans-serif`;
-            getLines(displayName, w - paddingInside * 2).forEach(line => {
+            ctx.font = nameFont;
+            nameLines = getLines(displayName, w - paddingInside * 2);
+            contentHeight += nameLines.length * nameLineHeight;
+        }
+        if (config.showClassroom) {
+            if (config.showClassName) contentHeight += gap;
+            contentHeight += config.classroomSize; 
+        }
+
+        const availableSpace = Math.max(0, h - (paddingInside * 2) - contentHeight);
+        const offsetY = availableSpace * (config.textOffsetY / 100);
+        let currentY = y + paddingInside + offsetY;
+        
+        if (config.showClassName) {
+            ctx.font = nameFont;
+            nameLines.forEach(line => {
                 ctx.fillText(line, textX, currentY);
-                currentY += config.classNameSize * 1.3;
+                currentY += nameLineHeight;
             });
-            currentY += config.classNameSize * 0.2;
         }
 
         if (config.showClassroom) {
-            ctx.font = `${config.classroomSize}px sans-serif`;
+            if (config.showClassName) currentY += gap;
+            ctx.font = roomFont;
             ctx.globalAlpha = 0.9;
-            ctx.fillText(course.room, textX, currentY);
+            ctx.fillText(displayRoom, textX, currentY);
             ctx.globalAlpha = 1.0;
         }
         ctx.restore(); 
     });
-
+    
     saveSettings();
 }
 
 /**
  * ============================================================
- * 6. 初始化流程 (Initialization)
+ * 6. 初始化
  * ============================================================
  */
 function updateControlValue(id, value) {
@@ -594,13 +607,9 @@ function updateControlValue(id, value) {
 
 function autoAdjustSettings() {
     if (!classCache || classCache.length === 0) return;
+    if (classCache.some(c => c.day_index === 6)) updateControlValue('endDay', 6);
 
-    const hasSaturday = classCache.some(c => c.day_index === 6);
-    if (hasSaturday) updateControlValue('endDay', 6);
-
-    const pMap = {
-        "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "A": 11, "B": 12, "C": 13, "D": 14
-    };
+    const pMap = { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "A": 11, "B": 12, "C": 13, "D": 14 };
     let minP = 14, maxP = 0, hasValidData = false;
     classCache.forEach(course => {
         const val = pMap[course.period];
@@ -619,51 +628,46 @@ function autoAdjustSettings() {
 async function init() {
     try {
         statusDiv.innerText = "讀取設定中...";
-        
         await loadSettings();
-        
         syncUIWithConfig();
 
         if (classCache && classCache.length > 0) {
             statusDiv.innerText = "已載入上次的紀錄";
             renderCourseList(classCache);
             drawWallpaper(classCache);
+        } else {
+             drawWallpaper([]);
         }
 
-        try {
-            const newData = await fetchCourseData();
-            if (newData && newData.length > 0) {
-                classCache = newData;
-                statusDiv.innerText = `抓取成功！共 ${classCache.length} 堂課`;
+        const newData = await fetchCourseData();
+        const warningBar = document.getElementById('warning-bar');
 
-                autoAdjustSettings(); 
-                
-                renderCourseList(classCache);
-                drawWallpaper(classCache);
-            }
-        } catch (fetchErr) {
-            console.log("無法抓取新資料 (可能不在目標頁面)，維持顯示舊紀錄");
-            if (!classCache || classCache.length === 0) {
-                statusDiv.innerText = "請前往課程網頁面以抓取課表";
-            }
+        if (Array.isArray(newData)) {
+            classCache = newData;
+            statusDiv.innerText = `抓取成功！共 ${classCache.length} 堂課`;
+            if(warningBar) warningBar.classList.add('hidden');
+            autoAdjustSettings(); 
+            renderCourseList(classCache);
+            drawWallpaper(classCache);
+        } else {
+            if(warningBar) warningBar.classList.remove('hidden');
+            if (classCache.length > 0) statusDiv.innerText = "顯示上次的紀錄";
+            else statusDiv.innerText = "無資料，請前往課程網頁面";
         }
         
         const themeSelect = document.getElementById('themeSelect');
         if (themeSelect) {
             themeSelect.addEventListener('change', function() {
                 const selectedTheme = this.value;
-                if (selectedTheme && typeof applyTheme === 'function') {
-                    applyTheme(selectedTheme);
-                }
+                if (selectedTheme && typeof applyTheme === 'function') applyTheme(selectedTheme);
                 this.value = ""; 
             });
         }
 
     } catch (err) {
         console.error(err);
-        statusDiv.innerText = "初始化發生錯誤";
+        statusDiv.innerText = "系統錯誤";
     }
 }
 
-// 啟動！
 document.addEventListener('DOMContentLoaded', init);
