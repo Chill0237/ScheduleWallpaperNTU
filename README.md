@@ -15,9 +15,7 @@
 
 ## 安裝方式
 
-*(擴充功能審核通過後，將在此處提供下載連結)*
-
-1.  前往 Chrome Web Store 頁面。
+1.  前往 [Chrome Web Store 頁面] (https://chromewebstore.google.com/detail/ntu%E8%AA%B2%E8%A1%A8%E8%BD%89%E6%A1%8C%E5%B8%83/ecgkdpafjhjamknmjemhghhgdopinmjc)。
 2.  點擊 **「加到 Chrome」** 即可開始使用。
 
 ## 使用教學
