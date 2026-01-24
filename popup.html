@@ -11,7 +11,6 @@
             --text-grey: #555;
             --border: #e0e0e0;
             --bg-light: #f8f9fa;
-            --anim-speed: 0.2s;
         }
 
         body {
@@ -24,12 +23,21 @@
 
         .main-layout { display: flex; height: 100%; overflow: hidden; }
         
+        /* Layout & Panels */
         .left-panel {
             width: 270px; background: #e9ecef;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             padding: 20px; box-shadow: inset -5px 0 10px rgba(0,0,0,0.05);
         }
+        .right-panel {
+            display: flex; flex-direction: column;
+            flex: 1; height: 100%; padding: 20px;
+            background: white; overflow: hidden;
+            position: relative;
+        }
+
+        /* Canvas Preview */
         .canvas-container {
             width: 216px; height: 470px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
@@ -42,27 +50,36 @@
             text-transform: uppercase; letter-spacing: 1px;
         }
 
-        .right-panel {
-            display: flex; flex-direction: column;
-            flex: 1; height: 100%; padding: 20px;
-            background: white; overflow: hidden;
-        }
-
+        /* Warning Bar */
         .warning-bar {
-            background-color: #fff3cd; color: #856404;
+            position: absolute;
+            bottom: 70px; left: 20px; right: 20px;
+            background-color: rgba(255, 243, 205, 0.95);
+            color: #856404;
             padding: 8px 12px; border-radius: 6px;
-            font-size: 13px; margin-bottom: 10px;
+            font-size: 12px;
             border: 1px solid #ffeeba;
             display: flex; align-items: center; gap: 8px;
             animation: fadeIn 0.3s ease;
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         }
+        .warning-bar.hidden { display: none !important; }
         .warning-bar a { color: #856404; font-weight: bold; text-decoration: underline; }
-        .hidden { display: none !important; }
+        
+        .btn-close-warning {
+            background: transparent; border: none; cursor: pointer;
+            color: #856404; font-size: 18px; font-weight: bold;
+            padding: 0; line-height: 1; margin-left: 8px;
+            opacity: 0.6; display: flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%; transition: all 0.2s;
+        }
+        .btn-close-warning:hover { opacity: 1; background-color: rgba(133, 100, 4, 0.1); }
 
+        /* Tabs */
         .tab-nav {
             display: flex; margin-bottom: 10px;
-            background: #f0f0f0; padding: 4px;
-            border-radius: 8px; flex-shrink: 0;
+            background: #f0f0f0; padding: 4px; border-radius: 8px; flex-shrink: 0;
         }
         .tab-btn {
             flex: 1; border: none; background: transparent;
@@ -70,8 +87,7 @@
             color: #666; border-radius: 6px; transition: all 0.2s;
         }
         .tab-btn.active {
-            background: #fff; color: #333;
-            font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            background: #fff; color: #333; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         .tab-content {
             display: none; flex-direction: column;
@@ -80,6 +96,7 @@
         .tab-content.active { display: flex; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Controls */
         .control-group { overflow-y: auto; padding-right: 5px; } 
         .control-row {
             height: 37px; display: flex; gap: 15px;
@@ -90,8 +107,7 @@
         }
         .flex-1 { flex: 1; } .flex-2 { flex: 2; } .flex-4 { flex: 4; }
         label { font-size: 13px; font-weight: 600; color: var(--text-grey); white-space: nowrap; }
-        h3 { margin: 0; font-size: 14px; color: #555; }
-
+        
         .modern-select {
             width: 100%; padding: 6px 10px; padding-right: 25px;
             border: 1px solid var(--border); border-radius: 6px;
@@ -114,6 +130,31 @@
         .modern-range:active::-webkit-slider-thumb { transform: scale(1.1); }
         .modern-range:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        .checkbox-container { display: inline-block; position: relative; width: 36px; height: 20px; cursor: pointer; }
+        .checkbox-container input { display: none; }
+        .checkmark { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 20px; }
+        .checkmark:before { content: ""; position: absolute; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; border-radius: 50%; transition: 0.2s; }
+        .checkbox-container input:checked + .checkmark { background-color: var(--primary); }
+        .checkbox-container input:checked + .checkmark:before { transform: translateX(16px); }
+
+        /* Card Style */
+        .setting-card {
+            background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+            padding: 10px; margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); flex-shrink: 0;
+        }
+        .setting-card.fill-remaining {
+            flex: 1; display: flex; flex-direction: column;
+            min-height: 0; margin-bottom: 0; padding-bottom: 0;
+        }
+        h3.card-title { font-size: 13px; color: #333; margin: 0 0 8px 0; font-weight: 600; }
+
+        /* Color Controls */
+        .color-control-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .color-group { display: flex; align-items: center; gap: 8px; }
+        .vertical-divider { width: 1px; height: 20px; background-color: #ddd; margin: 0 6px; }
+        .mini-label { font-size: 12px; color: #666; margin-right: 4px; font-weight: 600; white-space: nowrap; }
+        
         .circle-color-wrapper {
             position: relative; width: 28px; height: 28px;
             border-radius: 50%; overflow: hidden;
@@ -124,10 +165,32 @@
             width: 200%; height: 200%; border: none; padding: 0; cursor: pointer;
         }
 
-        .course-list-scroll {
-            flex: 1; overflow-y: auto; border: 1px solid #eee;
-            border-radius: 8px; padding: 5px; background: #fafafa;
+        /* Manual Course List */
+        .manual-details { border: none; background: transparent; margin: 0; }
+        .manual-summary {
+            padding: 0 0 6px 0; background: transparent;
+            font-size: 13px; color: #333; font-weight: 600;
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none;
         }
+        .manual-summary::-webkit-details-marker { display: none; }
+        .manual-summary:hover { opacity: 0.8; }
+        .manual-summary:after { content: '+'; font-size: 16px; font-weight: bold; color: #888; transition: transform 0.2s; }
+        .manual-details[open] .manual-summary:after { transform: rotate(45deg); }
+        .manual-content { padding-top: 8px; border-top: 1px solid #f0f0f0; }
+        .manual-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .manual-list { display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; }
+        .manual-item { display: flex; gap: 6px; align-items: center; padding: 4px; border-bottom: 1px solid #f0f0f0; }
+
+        /* Course List Scroll */
+        .course-list-scroll {
+            flex: 1; overflow-y: auto; 
+            border: none; border-top: 1px solid #eee;
+            margin-top: 5px; padding: 5px 0; background: transparent;
+        }
+        .course-list-scroll::-webkit-scrollbar { width: 6px; }
+        .course-list-scroll::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
+        .course-list-scroll::-webkit-scrollbar-track { background: transparent; }
+        
         .course-item {
             display: flex; align-items: center; gap: 8px;
             padding: 8px; margin-bottom: 4px;
@@ -135,7 +198,6 @@
         }
         .course-info { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px;}
         .course-original-name { display: block; font-size: 10px; color: #999; margin-bottom: 2px; }
-        
         .input-alias {
             width: 100%; border: none; border-bottom: 1px solid #ddd;
             background: transparent !important; margin: 0; font-size: 13px; padding: 2px 0;
@@ -143,24 +205,11 @@
         .input-alias:focus { outline: none; border-bottom-color: var(--primary); }
         .input-room-alias::placeholder { color: #aaa; font-size: 11px; }
 
-        .manual-section {
-            border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 10px;
-        }
-        .manual-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
-        }
-        .manual-list {
-            display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto;
-        }
-        .manual-item {
-            display: flex; gap: 6px; align-items: center; background: #fff; padding: 4px; border-radius: 4px; border: 1px solid #eee;
-        }
-        .btn-mini {
-            padding: 4px 8px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; color: white;
-        }
+        /* Buttons */
+        .btn-mini { padding: 4px 8px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; color: white; }
         .btn-mini-add { background-color: var(--success); }
-        .btn-mini-del { background-color: #ccc; color: #fff; width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: bold;}
-        .btn-mini-del:hover { background-color: var(--danger); }
+        .btn-mini-del { background-color: #eee; color: #666; width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 50%; }
+        .btn-mini-del:hover { background-color: var(--danger); color: white; }
 
         .action-area { margin-top: 10px; flex-shrink: 0; }
         #status { font-size: 12px; color: #666; margin-bottom: 5px; text-align: right; height: 16px; }
@@ -174,13 +223,6 @@
             background: var(--danger); color: white; font-weight: bold; cursor: pointer;
         }
         .btn-success:hover, .btn-danger:hover { filter: brightness(0.95); transform: translateY(-1px); }
-
-        .checkbox-container { display: inline-block; position: relative; width: 36px; height: 20px; cursor: pointer; }
-        .checkbox-container input { display: none; }
-        .checkmark { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 20px; }
-        .checkmark:before { content: ""; position: absolute; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; border-radius: 50%; transition: 0.2s; }
-        .checkbox-container input:checked + .checkmark { background-color: var(--primary); }
-        .checkbox-container input:checked + .checkmark:before { transform: translateX(16px); }
     </style>
 </head>
 <body>
@@ -194,12 +236,13 @@
 
         <div class="right-panel">
             <div id="warning-bar" class="warning-bar hidden">
-                <span>⚠️ 無法抓取新課表，目前顯示舊紀錄。<a href="https://course.ntu.edu.tw/result/final/table" target="_blank">前往課程網</a>開啟選課結果頁面。</span>
+                <span style="flex: 1;">⚠️ 無法抓取新課表，目前顯示舊紀錄。<a href="https://course.ntu.edu.tw/result/final/table" target="_blank">前往課程網</a>開啟選課結果頁面。</span>
+                <button id="btn-close-warning" class="btn-close-warning" title="關閉">×</button>
             </div>
 
             <div class="tab-nav">
                 <button class="tab-btn active" data-target="tab-global">排版設定</button>
-                <button class="tab-btn" data-target="tab-course">顏色設定</button>
+                <button class="tab-btn" data-target="tab-course">內容設定</button> 
             </div>
 
             <div id="tab-global" class="tab-content active">
@@ -274,21 +317,19 @@
             </div>
 
             <div id="tab-course" class="tab-content">
-                <div class="control-group">
-                    <div class="control-row">
-                        <div class="control-item flex-1">
-                            <label>背景顏色</label>
-                            <div class="circle-color-wrapper" title="全域背景"><input type="color" id="bgColor" class="circle-color-input" value="#fdfbf7"></div>
+                <div class="setting-card">
+                    <div class="color-control-row">
+                        <div class="color-group">
+                            <span class="mini-label">全域配色</span>
+                            <div class="circle-color-wrapper" title="背景"><input type="color" id="bgColor" class="circle-color-input" value="#fdfbf7"></div>
+                            <div class="circle-color-wrapper" title="文字"><input type="color" id="textColor" class="circle-color-input" value="#2c3e50"></div>
                         </div>
-                        <div class="control-item flex-1">
-                            <label>字體顏色</label>
-                            <div class="circle-color-wrapper" title="全域字體"><input type="color" id="textColor" class="circle-color-input" value="#2c3e50"></div>
-                        </div>
-                        <div class="control-item flex-2">
-                            <label>快速套用主題</label>
+                        <div class="vertical-divider"></div>
+                        <div class="color-group" style="flex: 1;">
+                            <span class="mini-label">主題</span>
                             <div class="select-wrapper" style="width: 100%;">
-                                <select id="themeSelect" class="modern-select">
-                                    <option value="" disabled selected>請選擇...</option>
+                                <select id="themeSelect" class="modern-select" style="padding-top:4px; padding-bottom:4px;">
+                                    <option value="" disabled selected>快速套用...</option>
                                     <option value="pastel">粉彩</option>
                                     <option value="cool">冷色</option>
                                     <option value="dark">暗黑</option>
@@ -297,24 +338,29 @@
                                     <option value="retro">復古</option>
                                     <option value="neon">霓虹</option>
                                     <option value="coffee">咖啡</option>
-                                </select><div class="select-arrow">▼</div>
+                                </select>
+                                <div class="select-arrow">▼</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="manual-section">
-                    <div class="manual-header">
-                        <h3>自訂時段 (手動新增)</h3>
-                        <button id="btn-add-manual" class="btn-mini btn-mini-add">＋ 新增</button>
-                    </div>
-                    <div id="manual-course-list" class="manual-list">
-                        <div style="text-align:center; color:#999; font-size:12px; padding:10px;">點擊上方按鈕新增課程</div>
-                    </div>
+                <div class="setting-card">
+                    <details class="manual-details">
+                        <summary class="manual-summary">手動新增時段 / 課程</summary>
+                        <div class="manual-content">
+                            <div class="manual-header">
+                                <span style="font-size:11px; color:#888;">自訂社團、打工或額外活動</span>
+                                <button id="btn-add-manual" class="btn-mini btn-mini-add">＋ 新增</button>
+                            </div>
+                            <div id="manual-course-list" class="manual-list">
+                                </div>
+                        </div>
+                    </details>
                 </div>
 
-                <div class="control-group" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
-                    <h3>個別設定 (配色與顯示名稱)</h3>
+                <div class="setting-card fill-remaining">
+                    <h3 class="card-title">個別設定 (配色與課名)</h3>
                     <div id="course-list-container" class="course-list-scroll">
                         <div style="text-align:center; color:#999; padding:20px;">尚未抓取資料</div>
                     </div>

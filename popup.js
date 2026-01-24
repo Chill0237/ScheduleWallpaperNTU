@@ -1,7 +1,5 @@
 /**
- * ============================================================
  * 1. 全域變數與設定
- * ============================================================
  */
 const DEFAULT_CONFIG = {
     bgColor: "#fdfbf7", textColor: "#2c3e50",
@@ -13,126 +11,30 @@ const DEFAULT_CONFIG = {
 };
 
 let config = { ...DEFAULT_CONFIG };
-let classCache = [];    // 來自爬蟲的課程資料
-let manualCourses = []; // 🔥 新增：手動新增的課程資料
+let classCache = [];    
+let manualCourses = []; 
+let currentTheme = 'pastel'; 
+let currentPalette = [];
 window.courseSettings = {}; 
 
 /**
  * 15 色主題庫
  */
 const themes = {
-    pastel: {
-        global: { bg: "#fdfbf7", text: "#4a4a4a" },
-        courses: [
-            { bg: "#FFB3BA", text: "#5c3a3a" }, { bg: "#FFDFBA", text: "#5c4d3a" }, 
-            { bg: "#FFFFBA", text: "#57593a" }, { bg: "#BAFFC9", text: "#3a5c3d" }, 
-            { bg: "#BAE1FF", text: "#3a465c" }, { bg: "#E6B3FF", text: "#463a5c" }, 
-            { bg: "#FFC3A0", text: "#5c3a3a" }, { bg: "#D5AAFF", text: "#463a5c" }, 
-            { bg: "#B5EAD7", text: "#3a555c" }, { bg: "#C7CEEA", text: "#3a465c" }, 
-            { bg: "#FF9AA2", text: "#5c3a3a" }, { bg: "#FFDAC1", text: "#5c4d3a" }, 
-            { bg: "#E2F0CB", text: "#3a5c3d" }, { bg: "#A0E7E5", text: "#3a555c" }, 
-            { bg: "#F49AC2", text: "#5c3a58" }
-        ]
-    },
-    cool: {
-        global: { bg: "#f0f9ff", text: "#003554" },
-        courses: [
-            { bg: "#0077B6", text: "#ffffff" }, { bg: "#00B4D8", text: "#ffffff" }, 
-            { bg: "#90E0EF", text: "#03045e" }, { bg: "#023E8A", text: "#ffffff" }, 
-            { bg: "#48CAE4", text: "#023e8a" }, { bg: "#0096C7", text: "#ffffff" }, 
-            { bg: "#5E60CE", text: "#ffffff" }, { bg: "#6930C3", text: "#ffffff" }, 
-            { bg: "#5390D9", text: "#ffffff" }, { bg: "#4EA8DE", text: "#ffffff" }, 
-            { bg: "#56CFE1", text: "#003554" }, { bg: "#64DFDF", text: "#003554" }, 
-            { bg: "#72EFDD", text: "#003554" }, { bg: "#480CA8", text: "#ffffff" }, 
-            { bg: "#219EBC", text: "#ffffff" }
-        ]
-    },
-    dark: {
-        global: { bg: "#212529", text: "#f8f9fa" },
-        courses: [
-            { bg: "#264653", text: "#ffffff" }, { bg: "#2A9D8F", text: "#ffffff" }, 
-            { bg: "#E76F51", text: "#ffffff" }, { bg: "#F4A261", text: "#264653" }, 
-            { bg: "#1D3557", text: "#ffffff" }, { bg: "#457B9D", text: "#ffffff" }, 
-            { bg: "#E63946", text: "#ffffff" }, { bg: "#6D6875", text: "#ffffff" }, 
-            { bg: "#B5838D", text: "#ffffff" }, { bg: "#355070", text: "#ffffff" }, 
-            { bg: "#6D597A", text: "#ffffff" }, { bg: "#B56576", text: "#ffffff" }, 
-            { bg: "#E56B6F", text: "#ffffff" }, { bg: "#0F4C5C", text: "#ffffff" }, 
-            { bg: "#2B2D42", text: "#ffffff" }
-        ]
-    },
-    morandi: {
-        global: { bg: "#ebeae6", text: "#4b4b4b" },
-        courses: [
-            { bg: "#7A7265", text: "#ffffff" }, { bg: "#A6A59E", text: "#ffffff" }, 
-            { bg: "#B09F85", text: "#ffffff" }, { bg: "#D3C4BE", text: "#5c4d48" }, 
-            { bg: "#E2D3C1", text: "#5c544d" }, { bg: "#8F9E9D", text: "#ffffff" }, 
-            { bg: "#778691", text: "#ffffff" }, { bg: "#686A6C", text: "#ffffff" }, 
-            { bg: "#9A8C98", text: "#ffffff" }, { bg: "#C9ADA7", text: "#5c4d48" }, 
-            { bg: "#4A4E69", text: "#ffffff" }, { bg: "#22223B", text: "#ffffff" }, 
-            { bg: "#A5A58D", text: "#ffffff" }, { bg: "#6B705C", text: "#ffffff" }, 
-            { bg: "#CB997E", text: "#ffffff" }
-        ]
-    },
-    nature: {
-        global: { bg: "#f1f8e9", text: "#33691e" },
-        courses: [
-            { bg: "#606C38", text: "#ffffff" }, { bg: "#283618", text: "#ffffff" },
-            { bg: "#FEFAE0", text: "#283618" }, { bg: "#DDA15E", text: "#ffffff" },
-            { bg: "#BC6C25", text: "#ffffff" }, { bg: "#588157", text: "#ffffff" },
-            { bg: "#3A5A40", text: "#ffffff" }, { bg: "#A3B18A", text: "#283618" },
-            { bg: "#DAD7CD", text: "#3a5a40" }, { bg: "#8DA399", text: "#ffffff" },
-            { bg: "#4F772D", text: "#ffffff" }, { bg: "#90A955", text: "#ffffff" },
-            { bg: "#31572C", text: "#ffffff" }, { bg: "#132A13", text: "#ffffff" },
-            { bg: "#4F5D75", text: "#ffffff" }
-        ]
-    },
-    retro: {
-        global: { bg: "#f4f1de", text: "#3d405b" },
-        courses: [
-            { bg: "#E07A5F", text: "#ffffff" }, { bg: "#3D405B", text: "#ffffff" },
-            { bg: "#81B29A", text: "#ffffff" }, { bg: "#F2CC8F", text: "#3d405b" },
-            { bg: "#D4A373", text: "#ffffff" }, { bg: "#E5989B", text: "#ffffff" },
-            { bg: "#B5838D", text: "#ffffff" }, { bg: "#6D6875", text: "#ffffff" },
-            { bg: "#D62828", text: "#ffffff" }, { bg: "#F77F00", text: "#ffffff" },
-            { bg: "#FCBF49", text: "#3d405b" }, { bg: "#EAE2B7", text: "#3d405b" },
-            { bg: "#003049", text: "#ffffff" }, { bg: "#588157", text: "#ffffff" },
-            { bg: "#A8DADC", text: "#1d3557" }
-        ]
-    },
-    neon: {
-        global: { bg: "#0d0d0d", text: "#ffffff" },
-        courses: [
-            { bg: "#F72585", text: "#ffffff" }, { bg: "#7209B7", text: "#ffffff" },
-            { bg: "#3A0CA3", text: "#ffffff" }, { bg: "#4361EE", text: "#ffffff" },
-            { bg: "#4CC9F0", text: "#000000" }, { bg: "#FF00FF", text: "#ffffff" },
-            { bg: "#00FFFF", text: "#000000" }, { bg: "#00FF00", text: "#000000" },
-            { bg: "#FFFF00", text: "#000000" }, { bg: "#FF0000", text: "#ffffff" },
-            { bg: "#9D4EDD", text: "#ffffff" }, { bg: "#FF9E00", text: "#000000" },
-            { bg: "#00BBF9", text: "#ffffff" }, { bg: "#F15BB5", text: "#000000" },
-            { bg: "#9B5DE5", text: "#ffffff" }
-        ]
-    },
-    coffee: {
-        global: { bg: "#f5ebe0", text: "#4a403a" },
-        courses: [
-            { bg: "#D6CCC2", text: "#4a403a" }, { bg: "#E3D5CA", text: "#4a403a" },
-            { bg: "#D5BDAF", text: "#4a403a" }, { bg: "#B08968", text: "#ffffff" },
-            { bg: "#7F5539", text: "#ffffff" }, { bg: "#9C6644", text: "#ffffff" },
-            { bg: "#BB8588", text: "#ffffff" }, { bg: "#D8E2DC", text: "#4a403a" },
-            { bg: "#FFE8D6", text: "#4a403a" }, { bg: "#606C38", text: "#ffffff" },
-            { bg: "#283618", text: "#ffffff" }, { bg: "#FEFAE0", text: "#4a403a" },
-            { bg: "#DDA15E", text: "#ffffff" }, { bg: "#BC6C25", text: "#ffffff" },
-            { bg: "#A47148", text: "#ffffff" }
-        ]
-    }
+    pastel: { global: { bg: "#fdfbf7", text: "#4a4a4a" }, courses: [{ bg: "#FFB3BA", text: "#5c3a3a" }, { bg: "#FFDFBA", text: "#5c4d3a" }, { bg: "#FFFFBA", text: "#57593a" }, { bg: "#BAFFC9", text: "#3a5c3d" }, { bg: "#BAE1FF", text: "#3a465c" }, { bg: "#E6B3FF", text: "#463a5c" }, { bg: "#FFC3A0", text: "#5c3a3a" }, { bg: "#D5AAFF", text: "#463a5c" }, { bg: "#B5EAD7", text: "#3a555c" }, { bg: "#C7CEEA", text: "#3a465c" }, { bg: "#FF9AA2", text: "#5c3a3a" }, { bg: "#FFDAC1", text: "#5c4d3a" }, { bg: "#E2F0CB", text: "#3a5c3d" }, { bg: "#A0E7E5", text: "#3a555c" }, { bg: "#F49AC2", text: "#5c3a58" }] },
+    cool: { global: { bg: "#f0f9ff", text: "#003554" }, courses: [{ bg: "#0077B6", text: "#ffffff" }, { bg: "#00B4D8", text: "#ffffff" }, { bg: "#90E0EF", text: "#03045e" }, { bg: "#023E8A", text: "#ffffff" }, { bg: "#48CAE4", text: "#023e8a" }, { bg: "#0096C7", text: "#ffffff" }, { bg: "#5E60CE", text: "#ffffff" }, { bg: "#6930C3", text: "#ffffff" }, { bg: "#5390D9", text: "#ffffff" }, { bg: "#4EA8DE", text: "#ffffff" }, { bg: "#56CFE1", text: "#003554" }, { bg: "#64DFDF", text: "#003554" }, { bg: "#72EFDD", text: "#003554" }, { bg: "#480CA8", text: "#ffffff" }, { bg: "#219EBC", text: "#ffffff" }] },
+    dark: { global: { bg: "#212529", text: "#f8f9fa" }, courses: [{ bg: "#264653", text: "#ffffff" }, { bg: "#2A9D8F", text: "#ffffff" }, { bg: "#E76F51", text: "#ffffff" }, { bg: "#F4A261", text: "#264653" }, { bg: "#1D3557", text: "#ffffff" }, { bg: "#457B9D", text: "#ffffff" }, { bg: "#E63946", text: "#ffffff" }, { bg: "#6D6875", text: "#ffffff" }, { bg: "#B5838D", text: "#ffffff" }, { bg: "#355070", text: "#ffffff" }, { bg: "#6D597A", text: "#ffffff" }, { bg: "#B56576", text: "#ffffff" }, { bg: "#E56B6F", text: "#ffffff" }, { bg: "#0F4C5C", text: "#ffffff" }, { bg: "#2B2D42", text: "#ffffff" }] },
+    morandi: { global: { bg: "#ebeae6", text: "#4b4b4b" }, courses: [{ bg: "#7A7265", text: "#ffffff" }, { bg: "#A6A59E", text: "#ffffff" }, { bg: "#B09F85", text: "#ffffff" }, { bg: "#D3C4BE", text: "#5c4d48" }, { bg: "#E2D3C1", text: "#5c544d" }, { bg: "#8F9E9D", text: "#ffffff" }, { bg: "#778691", text: "#ffffff" }, { bg: "#686A6C", text: "#ffffff" }, { bg: "#9A8C98", text: "#ffffff" }, { bg: "#C9ADA7", text: "#5c4d48" }, { bg: "#4A4E69", text: "#ffffff" }, { bg: "#22223B", text: "#ffffff" }, { bg: "#A5A58D", text: "#ffffff" }, { bg: "#6B705C", text: "#ffffff" }, { bg: "#CB997E", text: "#ffffff" }] },
+    nature: { global: { bg: "#f1f8e9", text: "#33691e" }, courses: [{ bg: "#606C38", text: "#ffffff" }, { bg: "#283618", text: "#ffffff" }, { bg: "#FEFAE0", text: "#283618" }, { bg: "#DDA15E", text: "#ffffff" }, { bg: "#BC6C25", text: "#ffffff" }, { bg: "#588157", text: "#ffffff" }, { bg: "#3A5A40", text: "#ffffff" }, { bg: "#A3B18A", text: "#283618" }, { bg: "#DAD7CD", text: "#3a5a40" }, { bg: "#8DA399", text: "#ffffff" }, { bg: "#4F772D", text: "#ffffff" }, { bg: "#90A955", text: "#ffffff" }, { bg: "#31572C", text: "#ffffff" }, { bg: "#132A13", text: "#ffffff" }, { bg: "#4F5D75", text: "#ffffff" }] },
+    retro: { global: { bg: "#f4f1de", text: "#3d405b" }, courses: [{ bg: "#E07A5F", text: "#ffffff" }, { bg: "#3D405B", text: "#ffffff" }, { bg: "#81B29A", text: "#ffffff" }, { bg: "#F2CC8F", text: "#3d405b" }, { bg: "#D4A373", text: "#ffffff" }, { bg: "#E5989B", text: "#ffffff" }, { bg: "#B5838D", text: "#ffffff" }, { bg: "#6D6875", text: "#ffffff" }, { bg: "#D62828", text: "#ffffff" }, { bg: "#F77F00", text: "#ffffff" }, { bg: "#FCBF49", text: "#3d405b" }, { bg: "#EAE2B7", text: "#3d405b" }, { bg: "#003049", text: "#ffffff" }, { bg: "#588157", text: "#ffffff" }, { bg: "#A8DADC", text: "#1d3557" }] },
+    neon: { global: { bg: "#0d0d0d", text: "#ffffff" }, courses: [{ bg: "#F72585", text: "#ffffff" }, { bg: "#7209B7", text: "#ffffff" }, { bg: "#3A0CA3", text: "#ffffff" }, { bg: "#4361EE", text: "#ffffff" }, { bg: "#4CC9F0", text: "#000000" }, { bg: "#FF00FF", text: "#ffffff" }, { bg: "#00FFFF", text: "#000000" }, { bg: "#00FF00", text: "#000000" }, { bg: "#FFFF00", text: "#000000" }, { bg: "#FF0000", text: "#ffffff" }, { bg: "#9D4EDD", text: "#ffffff" }, { bg: "#FF9E00", text: "#000000" }, { bg: "#00BBF9", text: "#ffffff" }, { bg: "#F15BB5", text: "#000000" }, { bg: "#9B5DE5", text: "#ffffff" }] },
+    coffee: { global: { bg: "#f5ebe0", text: "#4a403a" }, courses: [{ bg: "#D6CCC2", text: "#4a403a" }, { bg: "#E3D5CA", text: "#4a403a" }, { bg: "#D5BDAF", text: "#4a403a" }, { bg: "#B08968", text: "#ffffff" }, { bg: "#7F5539", text: "#ffffff" }, { bg: "#9C6644", text: "#ffffff" }, { bg: "#BB8588", text: "#ffffff" }, { bg: "#D8E2DC", text: "#4a403a" }, { bg: "#FFE8D6", text: "#4a403a" }, { bg: "#606C38", text: "#ffffff" }, { bg: "#283618", text: "#ffffff" }, { bg: "#FEFAE0", text: "#4a403a" }, { bg: "#DDA15E", text: "#ffffff" }, { bg: "#BC6C25", text: "#ffffff" }, { bg: "#A47148", text: "#ffffff" }] }
 };
 
 const statusDiv = document.getElementById('status');
 
 /**
- * ============================================================
  * 2. 事件監聽
- * ============================================================
  */
 function handleInput(e) {
     const target = e.target;
@@ -180,10 +82,8 @@ document.getElementById('btn-download').addEventListener('click', () => {
     const canvas = document.getElementById('wallpaperCanvas');
     const link = document.createElement('a');
     const date = new Date();
-    
     const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
     const timeStr = `${date.getHours().toString().padStart(2,'0')}-${date.getMinutes().toString().padStart(2,'0')}-${date.getSeconds().toString().padStart(2,'0')}`;
-    
     link.download = `NTU_Wallpaper_${dateStr}_${timeStr}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
@@ -197,11 +97,12 @@ document.getElementById('btn-reset').addEventListener('click', async () => {
     config = { ...DEFAULT_CONFIG };
     window.courseSettings = {};
     classCache = [];
-    manualCourses = []; // 🔥 重置時清空手動課程
+    manualCourses = [];
+    currentTheme = 'pastel';
 
     await chrome.storage.local.clear();
     syncUIWithConfig();
-    renderManualCourseList(); // 重繪空列表
+    renderManualCourseList();
     document.getElementById('course-list-container').innerHTML = '<div style="text-align:center; color:#999; padding:20px;">尚未抓取資料</div>';
     
     const newData = await fetchCourseData();
@@ -212,9 +113,7 @@ document.getElementById('btn-reset').addEventListener('click', async () => {
         statusDiv.innerText = `重置成功！目前共 ${classCache.length} 堂課`;
         if(warningBar) warningBar.classList.add('hidden');
         autoAdjustSettings(); 
-        renderCourseList(getAllCourses());
-        drawWallpaper(getAllCourses());
-        saveSettings();
+        applyTheme(currentTheme);
     } else {
         statusDiv.innerText = "重置完成 (目前無法抓取資料)";
         if(warningBar) warningBar.classList.remove('hidden');
@@ -222,49 +121,58 @@ document.getElementById('btn-reset').addEventListener('click', async () => {
     }
 });
 
-// 🔥 新增：新增手動課程按鈕事件
 document.getElementById('btn-add-manual').addEventListener('click', () => {
     const newCourse = {
-        id: Date.now(), // 唯一 ID
+        id: Date.now(),
         name: "新課程",
         room: "",
-        day_index: 1, // 預設星期一
-        period: "1"   // 預設第一節
+        day_index: 1, 
+        period: "1"   
     };
     manualCourses.push(newCourse);
-    saveSettings();
+    
+    autoAdjustSettings(); 
+    
+    const uniqueNames = getSortedUniqueNames(getAllCourses());
+    if (uniqueNames.length > 15) {
+        alert(`警告：目前已有 ${uniqueNames.length} 堂不同課程。\n主題調色盤僅有 15 種顏色，將會出現重複顏色！`);
+    }
+
+    reapplyTheme(); 
     renderManualCourseList();
-    renderCourseList(getAllCourses());
-    drawWallpaper(getAllCourses());
+    
+    const details = document.querySelector('.manual-details');
+    if (details) details.open = true;
 });
 
 /**
- * ============================================================
  * 3. 資料處理
- * ============================================================
  */
 function saveSettings() {
     chrome.storage.local.set({ 
         config, 
         courseSettings: window.courseSettings, 
         classCache,
-        manualCourses // 🔥 記得儲存手動課程
+        manualCourses,
+        currentTheme,
+        currentPalette 
     });
 }
 
 async function loadSettings() {
     return new Promise((resolve) => {
-        chrome.storage.local.get(['config', 'courseSettings', 'classCache', 'manualCourses'], (result) => {
+        chrome.storage.local.get(['config', 'courseSettings', 'classCache', 'manualCourses', 'currentTheme', 'currentPalette'], (result) => {
             if (result.config) Object.assign(config, result.config);
             if (result.courseSettings) window.courseSettings = result.courseSettings;
             if (result.classCache) classCache = result.classCache;
-            if (result.manualCourses) manualCourses = result.manualCourses; // 🔥 載入手動課程
+            if (result.manualCourses) manualCourses = result.manualCourses;
+            if (result.currentTheme) currentTheme = result.currentTheme;
+            if (result.currentPalette) currentPalette = result.currentPalette;
             resolve();
         });
     });
 }
 
-// 🔥 新增：取得所有課程 (合併爬蟲抓取 + 手動新增)
 function getAllCourses() {
     return [...classCache, ...manualCourses];
 }
@@ -356,13 +264,6 @@ function getSortedUniqueNames(courses) {
     });
 }
 
-/**
- * ============================================================
- * 4. 渲染列表與主題
- * ============================================================
- */
-
-// 🔥 新增：渲染手動課程列表 (可編輯時間)
 function renderManualCourseList() {
     const container = document.getElementById('manual-course-list');
     container.innerHTML = '';
@@ -379,13 +280,11 @@ function renderManualCourseList() {
         const div = document.createElement('div');
         div.className = 'manual-item';
         
-        // 建立星期選項
         let dayOptions = '';
         for(let d=1; d<=6; d++) {
             dayOptions += `<option value="${d}" ${course.day_index == d ? 'selected' : ''}>${dayMap[d]}</option>`;
         }
 
-        // 建立節次選項
         let periodOptions = '';
         periods.forEach(p => {
             periodOptions += `<option value="${p}" ${course.period == p ? 'selected' : ''}>${p}</option>`;
@@ -399,28 +298,28 @@ function renderManualCourseList() {
             <button class="btn-mini btn-mini-del" data-id="${course.id}">×</button>
         `;
 
-        // 綁定事件
-        const updateCourse = () => {
+        const updateAll = () => {
             course.name = div.querySelector('.manual-name').value;
             course.room = div.querySelector('.manual-room').value;
             course.day_index = parseInt(div.querySelector('.manual-day').value);
             course.period = div.querySelector('.manual-period').value;
             
-            saveSettings();
-            renderCourseList(getAllCourses()); // 更新下方配色列表
-            drawWallpaper(getAllCourses());    // 重繪
+            autoAdjustSettings();
+            reapplyTheme(); 
         };
 
-        div.querySelectorAll('input, select').forEach(el => {
-            el.addEventListener('input', updateCourse);
-        });
+        const nameInput = div.querySelector('.manual-name');
+        nameInput.addEventListener('input', updateAll); 
+
+        div.querySelector('.manual-room').addEventListener('input', updateAll);
+        div.querySelector('.manual-day').addEventListener('input', updateAll);
+        div.querySelector('.manual-period').addEventListener('input', updateAll);
 
         div.querySelector('.btn-mini-del').addEventListener('click', () => {
             manualCourses.splice(index, 1);
-            saveSettings();
-            renderManualCourseList();
-            renderCourseList(getAllCourses());
-            drawWallpaper(getAllCourses());
+            autoAdjustSettings();
+            reapplyTheme();
+            renderManualCourseList(); 
         });
 
         container.appendChild(div);
@@ -437,14 +336,19 @@ function renderCourseList(courses) {
     }
 
     const uniqueNames = getSortedUniqueNames(courses);
-    const defaultPalette = ["#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff", "#bdb2ff", "#ffc6ff"];
+    
+    if (!currentPalette || currentPalette.length === 0) {
+        const themeData = themes[currentTheme] || themes.pastel;
+        currentPalette = shuffleArray(themeData.courses);
+    }
 
     uniqueNames.forEach((name, index) => {
         if (!window.courseSettings[name]) {
+            const colorPair = currentPalette[index % currentPalette.length];
             window.courseSettings[name] = {
                 alias: "", roomAlias: "", 
-                bgColor: defaultPalette[index % defaultPalette.length],
-                textColor: "#333333"
+                bgColor: colorPair.bg,
+                textColor: colorPair.text
             };
         }
         const settings = window.courseSettings[name];
@@ -470,34 +374,30 @@ function renderCourseList(courses) {
 
         item.querySelector('.input-alias').addEventListener('input', (e) => {
             window.courseSettings[name].alias = e.target.value;
-            drawWallpaper(getAllCourses()); // 🔥 改為 getAllCourses
+            drawWallpaper(getAllCourses()); 
         });
         item.querySelector('.input-room-alias').addEventListener('input', (e) => {
             window.courseSettings[name].roomAlias = e.target.value;
-            drawWallpaper(getAllCourses()); // 🔥 改為 getAllCourses
+            drawWallpaper(getAllCourses()); 
         });
         item.querySelector('.bg-color-picker').addEventListener('input', (e) => {
             window.courseSettings[name].bgColor = e.target.value;
-            drawWallpaper(getAllCourses()); // 🔥 改為 getAllCourses
+            drawWallpaper(getAllCourses()); 
         });
         item.querySelector('.text-color-picker').addEventListener('input', (e) => {
             window.courseSettings[name].textColor = e.target.value;
-            drawWallpaper(getAllCourses()); // 🔥 改為 getAllCourses
+            drawWallpaper(getAllCourses()); 
         });
 
         container.appendChild(item);
     });
 }
 
-window.applyTheme = function(themeName) {
-    // 🔥 改為檢查所有課程
+function reapplyTheme() {
     const allCourses = getAllCourses();
-    if (!allCourses || allCourses.length === 0) {
-        alert("請先抓取課表或新增自訂課程！");
-        return;
-    }
-    
-    const themeData = themes[themeName];
+    const uniqueNames = getSortedUniqueNames(allCourses); 
+
+    const themeData = themes[currentTheme];
     
     if (themeData.global) {
         config.bgColor = themeData.global.bg;
@@ -505,36 +405,45 @@ window.applyTheme = function(themeName) {
         
         const bgInput = document.getElementById('bgColor');
         const textInput = document.getElementById('textColor');
-        
-        if (bgInput) {
-            bgInput.value = config.bgColor;
-            bgInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (textInput) {
-            textInput.value = config.textColor;
-            textInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        if (bgInput) bgInput.value = config.bgColor;
+        if (textInput) textInput.value = config.textColor;
     }
 
-    const shuffledPalette = shuffleArray(themeData.courses);
-    const uniqueNames = getSortedUniqueNames(allCourses); // 🔥 使用所有課程
+    if (!currentPalette || currentPalette.length === 0) {
+        currentPalette = shuffleArray(themeData.courses);
+    }
 
     uniqueNames.forEach((name, index) => {
-        if (window.courseSettings[name]) {
-            const colorPair = shuffledPalette[index % shuffledPalette.length];
-            window.courseSettings[name].bgColor = colorPair.bg;
-            window.courseSettings[name].textColor = colorPair.text;
+        const colorPair = currentPalette[index % currentPalette.length];
+        
+        if (!window.courseSettings[name]) {
+             window.courseSettings[name] = { alias: "", roomAlias: "" };
         }
+        window.courseSettings[name].bgColor = colorPair.bg;
+        window.courseSettings[name].textColor = colorPair.text;
     });
     
+    saveSettings(); 
     renderCourseList(allCourses);
     drawWallpaper(allCourses);
+}
+
+window.applyTheme = function(themeName) {
+    const allCourses = getAllCourses();
+    if (!allCourses || allCourses.length === 0) {
+        alert("請先抓取課表或新增自訂課程！");
+        return;
+    }
+    currentTheme = themeName; 
+    
+    const themeData = themes[themeName];
+    currentPalette = shuffleArray(themeData.courses);
+    
+    reapplyTheme();           
 };
 
 /**
- * ============================================================
  * 5. 繪圖邏輯
- * ============================================================
  */
 function drawWallpaper(courses) {
     if (!courses) courses = [];
@@ -695,9 +604,7 @@ function drawWallpaper(courses) {
 }
 
 /**
- * ============================================================
  * 6. 初始化
- * ============================================================
  */
 function updateControlValue(id, value) {
     config[id] = value;
@@ -706,7 +613,6 @@ function updateControlValue(id, value) {
 }
 
 function autoAdjustSettings() {
-    // 🔥 改為檢查所有課程
     const allCourses = getAllCourses();
     if (!allCourses || allCourses.length === 0) return;
     
@@ -734,10 +640,8 @@ async function init() {
         await loadSettings();
         syncUIWithConfig();
 
-        // 🔥 初始化時渲染手動列表
         renderManualCourseList();
 
-        // 🔥 改為渲染所有課程
         if (getAllCourses().length > 0) {
             statusDiv.innerText = "已載入上次的紀錄";
             renderCourseList(getAllCourses());
@@ -754,8 +658,7 @@ async function init() {
             statusDiv.innerText = `抓取成功！共 ${classCache.length} 堂課`;
             if(warningBar) warningBar.classList.add('hidden');
             autoAdjustSettings(); 
-            renderCourseList(getAllCourses());
-            drawWallpaper(getAllCourses());
+            applyTheme(currentTheme);
         } else {
             if(warningBar) warningBar.classList.remove('hidden');
             if (classCache.length > 0) statusDiv.innerText = "顯示上次的紀錄";
@@ -768,6 +671,14 @@ async function init() {
                 const selectedTheme = this.value;
                 if (selectedTheme && typeof applyTheme === 'function') applyTheme(selectedTheme);
                 this.value = ""; 
+            });
+        }
+        
+        const closeBtn = document.getElementById('btn-close-warning');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                const warningBar = document.getElementById('warning-bar');
+                if (warningBar) warningBar.classList.add('hidden');
             });
         }
 
