@@ -13,7 +13,8 @@ const DEFAULT_CONFIG = {
 };
 
 let config = { ...DEFAULT_CONFIG };
-let classCache = []; 
+let classCache = [];    // 來自爬蟲的課程資料
+let manualCourses = []; // 🔥 新增：手動新增的課程資料
 window.courseSettings = {}; 
 
 /**
@@ -140,7 +141,7 @@ function handleInput(e) {
         let value = target.type === 'checkbox' ? target.checked : 
                    (target.type === 'number' || target.type === 'range' || target.tagName === 'SELECT') ? Number(target.value) : target.value;
         config[key] = value;
-        drawWallpaper(classCache);
+        drawWallpaper(getAllCourses());
     }
 }
 
@@ -179,8 +180,10 @@ document.getElementById('btn-download').addEventListener('click', () => {
     const canvas = document.getElementById('wallpaperCanvas');
     const link = document.createElement('a');
     const date = new Date();
+    
     const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
     const timeStr = `${date.getHours().toString().padStart(2,'0')}-${date.getMinutes().toString().padStart(2,'0')}-${date.getSeconds().toString().padStart(2,'0')}`;
+    
     link.download = `NTU_Wallpaper_${dateStr}_${timeStr}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
@@ -188,15 +191,17 @@ document.getElementById('btn-download').addEventListener('click', () => {
 });
 
 document.getElementById('btn-reset').addEventListener('click', async () => {
-    if (!confirm("確定要重置所有設定嗎？\n這將清除所有自訂顏色、課名修改與快取資料。")) return;
+    if (!confirm("確定要重置所有設定嗎？\n這將清除所有自訂顏色、課名修改、手動課程與快取資料。")) return;
 
     statusDiv.innerText = "正在重置...";
     config = { ...DEFAULT_CONFIG };
     window.courseSettings = {};
     classCache = [];
+    manualCourses = []; // 🔥 重置時清空手動課程
 
     await chrome.storage.local.clear();
     syncUIWithConfig();
+    renderManualCourseList(); // 重繪空列表
     document.getElementById('course-list-container').innerHTML = '<div style="text-align:center; color:#999; padding:20px;">尚未抓取資料</div>';
     
     const newData = await fetchCourseData();
@@ -207,8 +212,8 @@ document.getElementById('btn-reset').addEventListener('click', async () => {
         statusDiv.innerText = `重置成功！目前共 ${classCache.length} 堂課`;
         if(warningBar) warningBar.classList.add('hidden');
         autoAdjustSettings(); 
-        renderCourseList(classCache);
-        drawWallpaper(classCache);
+        renderCourseList(getAllCourses());
+        drawWallpaper(getAllCourses());
         saveSettings();
     } else {
         statusDiv.innerText = "重置完成 (目前無法抓取資料)";
@@ -217,24 +222,51 @@ document.getElementById('btn-reset').addEventListener('click', async () => {
     }
 });
 
+// 🔥 新增：新增手動課程按鈕事件
+document.getElementById('btn-add-manual').addEventListener('click', () => {
+    const newCourse = {
+        id: Date.now(), // 唯一 ID
+        name: "新課程",
+        room: "",
+        day_index: 1, // 預設星期一
+        period: "1"   // 預設第一節
+    };
+    manualCourses.push(newCourse);
+    saveSettings();
+    renderManualCourseList();
+    renderCourseList(getAllCourses());
+    drawWallpaper(getAllCourses());
+});
+
 /**
  * ============================================================
  * 3. 資料處理
  * ============================================================
  */
 function saveSettings() {
-    chrome.storage.local.set({ config, courseSettings: window.courseSettings, classCache });
+    chrome.storage.local.set({ 
+        config, 
+        courseSettings: window.courseSettings, 
+        classCache,
+        manualCourses // 🔥 記得儲存手動課程
+    });
 }
 
 async function loadSettings() {
     return new Promise((resolve) => {
-        chrome.storage.local.get(['config', 'courseSettings', 'classCache'], (result) => {
+        chrome.storage.local.get(['config', 'courseSettings', 'classCache', 'manualCourses'], (result) => {
             if (result.config) Object.assign(config, result.config);
             if (result.courseSettings) window.courseSettings = result.courseSettings;
             if (result.classCache) classCache = result.classCache;
+            if (result.manualCourses) manualCourses = result.manualCourses; // 🔥 載入手動課程
             resolve();
         });
     });
+}
+
+// 🔥 新增：取得所有課程 (合併爬蟲抓取 + 手動新增)
+function getAllCourses() {
+    return [...classCache, ...manualCourses];
 }
 
 function syncUIWithConfig() {
@@ -329,6 +361,72 @@ function getSortedUniqueNames(courses) {
  * 4. 渲染列表與主題
  * ============================================================
  */
+
+// 🔥 新增：渲染手動課程列表 (可編輯時間)
+function renderManualCourseList() {
+    const container = document.getElementById('manual-course-list');
+    container.innerHTML = '';
+
+    if (manualCourses.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#999; font-size:12px; padding:10px;">點擊上方按鈕新增課程</div>';
+        return;
+    }
+
+    const periods = ["0","1","2","3","4","5","6","7","8","9","10","A","B","C","D"];
+    const dayMap = {1:"一", 2:"二", 3:"三", 4:"四", 5:"五", 6:"六"};
+
+    manualCourses.forEach((course, index) => {
+        const div = document.createElement('div');
+        div.className = 'manual-item';
+        
+        // 建立星期選項
+        let dayOptions = '';
+        for(let d=1; d<=6; d++) {
+            dayOptions += `<option value="${d}" ${course.day_index == d ? 'selected' : ''}>${dayMap[d]}</option>`;
+        }
+
+        // 建立節次選項
+        let periodOptions = '';
+        periods.forEach(p => {
+            periodOptions += `<option value="${p}" ${course.period == p ? 'selected' : ''}>${p}</option>`;
+        });
+
+        div.innerHTML = `
+            <input type="text" class="input-alias manual-name" value="${course.name}" placeholder="課名" style="flex:2; min-width:0;">
+            <input type="text" class="input-alias manual-room" value="${course.room || ''}" placeholder="教室" style="flex:1; min-width:0;">
+            <select class="modern-select manual-day" style="width:50px; padding:2px 4px;">${dayOptions}</select>
+            <select class="modern-select manual-period" style="width:50px; padding:2px 4px;">${periodOptions}</select>
+            <button class="btn-mini btn-mini-del" data-id="${course.id}">×</button>
+        `;
+
+        // 綁定事件
+        const updateCourse = () => {
+            course.name = div.querySelector('.manual-name').value;
+            course.room = div.querySelector('.manual-room').value;
+            course.day_index = parseInt(div.querySelector('.manual-day').value);
+            course.period = div.querySelector('.manual-period').value;
+            
+            saveSettings();
+            renderCourseList(getAllCourses()); // 更新下方配色列表
+            drawWallpaper(getAllCourses());    // 重繪
+        };
+
+        div.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', updateCourse);
+        });
+
+        div.querySelector('.btn-mini-del').addEventListener('click', () => {
+            manualCourses.splice(index, 1);
+            saveSettings();
+            renderManualCourseList();
+            renderCourseList(getAllCourses());
+            drawWallpaper(getAllCourses());
+        });
+
+        container.appendChild(div);
+    });
+}
+
 function renderCourseList(courses) {
     const container = document.getElementById('course-list-container');
     container.innerHTML = ''; 
@@ -372,19 +470,19 @@ function renderCourseList(courses) {
 
         item.querySelector('.input-alias').addEventListener('input', (e) => {
             window.courseSettings[name].alias = e.target.value;
-            drawWallpaper(classCache);
+            drawWallpaper(getAllCourses()); // 🔥 改為 getAllCourses
         });
         item.querySelector('.input-room-alias').addEventListener('input', (e) => {
             window.courseSettings[name].roomAlias = e.target.value;
-            drawWallpaper(classCache);
+            drawWallpaper(getAllCourses()); // 🔥 改為 getAllCourses
         });
         item.querySelector('.bg-color-picker').addEventListener('input', (e) => {
             window.courseSettings[name].bgColor = e.target.value;
-            drawWallpaper(classCache);
+            drawWallpaper(getAllCourses()); // 🔥 改為 getAllCourses
         });
         item.querySelector('.text-color-picker').addEventListener('input', (e) => {
             window.courseSettings[name].textColor = e.target.value;
-            drawWallpaper(classCache);
+            drawWallpaper(getAllCourses()); // 🔥 改為 getAllCourses
         });
 
         container.appendChild(item);
@@ -392,8 +490,10 @@ function renderCourseList(courses) {
 }
 
 window.applyTheme = function(themeName) {
-    if (!classCache || classCache.length === 0) {
-        alert("請先抓取課表！");
+    // 🔥 改為檢查所有課程
+    const allCourses = getAllCourses();
+    if (!allCourses || allCourses.length === 0) {
+        alert("請先抓取課表或新增自訂課程！");
         return;
     }
     
@@ -417,7 +517,7 @@ window.applyTheme = function(themeName) {
     }
 
     const shuffledPalette = shuffleArray(themeData.courses);
-    const uniqueNames = getSortedUniqueNames(classCache);
+    const uniqueNames = getSortedUniqueNames(allCourses); // 🔥 使用所有課程
 
     uniqueNames.forEach((name, index) => {
         if (window.courseSettings[name]) {
@@ -427,8 +527,8 @@ window.applyTheme = function(themeName) {
         }
     });
     
-    renderCourseList(classCache);
-    drawWallpaper(classCache);
+    renderCourseList(allCourses);
+    drawWallpaper(allCourses);
 };
 
 /**
@@ -606,12 +706,15 @@ function updateControlValue(id, value) {
 }
 
 function autoAdjustSettings() {
-    if (!classCache || classCache.length === 0) return;
-    if (classCache.some(c => c.day_index === 6)) updateControlValue('endDay', 6);
+    // 🔥 改為檢查所有課程
+    const allCourses = getAllCourses();
+    if (!allCourses || allCourses.length === 0) return;
+    
+    if (allCourses.some(c => c.day_index === 6)) updateControlValue('endDay', 6);
 
     const pMap = { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "A": 11, "B": 12, "C": 13, "D": 14 };
     let minP = 14, maxP = 0, hasValidData = false;
-    classCache.forEach(course => {
+    allCourses.forEach(course => {
         const val = pMap[course.period];
         if (val !== undefined) {
             if (val < minP) minP = val;
@@ -631,10 +734,14 @@ async function init() {
         await loadSettings();
         syncUIWithConfig();
 
-        if (classCache && classCache.length > 0) {
+        // 🔥 初始化時渲染手動列表
+        renderManualCourseList();
+
+        // 🔥 改為渲染所有課程
+        if (getAllCourses().length > 0) {
             statusDiv.innerText = "已載入上次的紀錄";
-            renderCourseList(classCache);
-            drawWallpaper(classCache);
+            renderCourseList(getAllCourses());
+            drawWallpaper(getAllCourses());
         } else {
              drawWallpaper([]);
         }
@@ -647,8 +754,8 @@ async function init() {
             statusDiv.innerText = `抓取成功！共 ${classCache.length} 堂課`;
             if(warningBar) warningBar.classList.add('hidden');
             autoAdjustSettings(); 
-            renderCourseList(classCache);
-            drawWallpaper(classCache);
+            renderCourseList(getAllCourses());
+            drawWallpaper(getAllCourses());
         } else {
             if(warningBar) warningBar.classList.remove('hidden');
             if (classCache.length > 0) statusDiv.innerText = "顯示上次的紀錄";

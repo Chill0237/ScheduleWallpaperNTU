@@ -143,6 +143,25 @@
         .input-alias:focus { outline: none; border-bottom-color: var(--primary); }
         .input-room-alias::placeholder { color: #aaa; font-size: 11px; }
 
+        .manual-section {
+            border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 10px;
+        }
+        .manual-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        }
+        .manual-list {
+            display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto;
+        }
+        .manual-item {
+            display: flex; gap: 6px; align-items: center; background: #fff; padding: 4px; border-radius: 4px; border: 1px solid #eee;
+        }
+        .btn-mini {
+            padding: 4px 8px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; color: white;
+        }
+        .btn-mini-add { background-color: var(--success); }
+        .btn-mini-del { background-color: #ccc; color: #fff; width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: bold;}
+        .btn-mini-del:hover { background-color: var(--danger); }
+
         .action-area { margin-top: 10px; flex-shrink: 0; }
         #status { font-size: 12px; color: #666; margin-bottom: 5px; text-align: right; height: 16px; }
         .btn-row { display: flex; gap: 10px; }
@@ -284,8 +303,18 @@
                     </div>
                 </div>
 
+                <div class="manual-section">
+                    <div class="manual-header">
+                        <h3>自訂時段 (手動新增)</h3>
+                        <button id="btn-add-manual" class="btn-mini btn-mini-add">＋ 新增</button>
+                    </div>
+                    <div id="manual-course-list" class="manual-list">
+                        <div style="text-align:center; color:#999; font-size:12px; padding:10px;">點擊上方按鈕新增課程</div>
+                    </div>
+                </div>
+
                 <div class="control-group" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
-                    <h3>個別設定</h3>
+                    <h3>個別設定 (配色與顯示名稱)</h3>
                     <div id="course-list-container" class="course-list-scroll">
                         <div style="text-align:center; color:#999; padding:20px;">尚未抓取資料</div>
                     </div>
