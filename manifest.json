@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NTU課表轉桌布",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "一鍵將台大選課結果轉成美觀的手機桌布",
   "permissions": [
     "activeTab",

@@ -3,8 +3,14 @@ if (typeof window.hasScheduleScraperRun === 'undefined') {
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === "scrape_schedule") {
-            const courses = [];
             const rows = document.querySelectorAll('.tr');
+            
+            if (rows.length === 0) {
+                sendResponse({ status: "error", code: "NO_TABLE_FOUND" });
+                return true;
+            }
+
+            const courses = [];
             
             rows.forEach((row, rowIndex) => {
                 if (rowIndex === 0) return; 

@@ -42,7 +42,26 @@ function handleInput(e) {
     if (key && key in config) {
         let value = target.type === 'checkbox' ? target.checked : 
                    (target.type === 'number' || target.type === 'range' || target.tagName === 'SELECT') ? Number(target.value) : target.value;
+        
         config[key] = value;
+
+        if (key === 'startDay' && config.startDay > config.endDay) {
+            config.endDay = config.startDay;
+            document.getElementById('endDay').value = config.endDay;
+        }
+        if (key === 'endDay' && config.endDay < config.startDay) {
+            config.startDay = config.endDay;
+            document.getElementById('startDay').value = config.startDay;
+        }
+        if (key === 'startNum' && config.startNum > config.endNum) {
+            config.endNum = config.startNum;
+            document.getElementById('endNum').value = config.endNum;
+        }
+        if (key === 'endNum' && config.endNum < config.startNum) {
+            config.startNum = config.endNum;
+            document.getElementById('startNum').value = config.startNum;
+        }
+
         drawWallpaper(getAllCourses());
     }
 }
@@ -91,34 +110,51 @@ document.getElementById('btn-download').addEventListener('click', () => {
 });
 
 document.getElementById('btn-reset').addEventListener('click', async () => {
-    if (!confirm("確定要重置所有設定嗎？\n這將清除所有自訂顏色、課名修改、手動課程與快取資料。")) return;
+    if (!confirm("確定要重置所有設定嗎？\n這將清除所有自訂顏色、手動新增的課程與排版設定。\n(若無法連線至課程網，系統會保留最後一次抓取的課表)")) return;
 
     statusDiv.innerText = "正在重置...";
+    
+    const backupClassCache = JSON.parse(JSON.stringify(classCache));
+    
     config = { ...DEFAULT_CONFIG };
     window.courseSettings = {};
     classCache = [];
-    manualCourses = [];
+    manualCourses = []; 
     currentTheme = 'pastel';
+    currentPalette = [];
 
     await chrome.storage.local.clear();
+    
     syncUIWithConfig();
-    renderManualCourseList();
-    document.getElementById('course-list-container').innerHTML = '<div style="text-align:center; color:#999; padding:20px;">尚未抓取資料</div>';
     
     const newData = await fetchCourseData();
     const warningBar = document.getElementById('warning-bar');
+    const warningText = warningBar.querySelector('span');
 
-    if (Array.isArray(newData)) {
-        classCache = newData;
-        statusDiv.innerText = `重置成功！目前共 ${classCache.length} 堂課`;
+    if (newData.success) {
+        classCache = newData.data;
+        statusDiv.innerText = `重置成功！已抓取最新課表`;
         if(warningBar) warningBar.classList.add('hidden');
-        autoAdjustSettings(); 
-        applyTheme(currentTheme);
     } else {
-        statusDiv.innerText = "重置完成 (目前無法抓取資料)";
-        if(warningBar) warningBar.classList.remove('hidden');
-        drawWallpaper([]);
+        classCache = backupClassCache;
+        
+        statusDiv.innerText = "設定已重置 (保留舊課表)";
+        
+        if(warningBar) {
+            warningBar.classList.remove('hidden');
+            if (newData.reason === "NOT_LOGGED_IN") {
+                warningText.innerHTML = '設定已重置。因未登入課程網，已為您保留原有的課表資料。';
+            } else {
+                warningText.innerHTML = '設定已重置。因不在選課頁面，已為您保留原有的課表資料。';
+            }
+        }
     }
+
+    autoAdjustSettings(); 
+    applyTheme(currentTheme); 
+    renderManualCourseList(); 
+    
+    saveSettings(); 
 });
 
 document.getElementById('btn-add-manual').addEventListener('click', () => {
@@ -206,8 +242,7 @@ function fetchCourseData() {
             const targetPattern = /course\.ntu\.edu\.tw\/result\/.*\/table/;
 
             if (!activeTab.url || !targetPattern.test(activeTab.url)) {
-                console.log("非目標網站，跳過抓取");
-                resolve(null);
+                resolve({ success: false, reason: "WRONG_URL" });
                 return;
             }
             
@@ -216,14 +251,23 @@ function fetchCourseData() {
                 files: ['content.js']
             }, () => {
                 if (chrome.runtime.lastError) { 
-                    console.warn("注入失敗 (可能是權限不足):", chrome.runtime.lastError);
-                    resolve(null); 
+                    console.warn("注入失敗:", chrome.runtime.lastError);
+                    resolve({ success: false, reason: "INJECTION_ERROR" }); 
                     return; 
                 }
                 chrome.tabs.sendMessage(activeTab.id, { action: "scrape_schedule" }, (response) => {
-                    if (chrome.runtime.lastError) { resolve(null); return; }
-                    if (response && response.data) resolve(response.data);
-                    else resolve([]);
+                    if (chrome.runtime.lastError) { 
+                        resolve({ success: false, reason: "MESSAGE_ERROR" }); 
+                        return; 
+                    }
+                    
+                    if (response && response.status === "success") {
+                        resolve({ success: true, data: response.data });
+                    } else if (response && response.status === "error" && response.code === "NO_TABLE_FOUND") {
+                        resolve({ success: false, reason: "NOT_LOGGED_IN" });
+                    } else {
+                        resolve({ success: false, reason: "UNKNOWN_ERROR" });
+                    }
                 });
             });
         });
@@ -617,9 +661,14 @@ function autoAdjustSettings() {
     if (!allCourses || allCourses.length === 0) return;
     
     if (allCourses.some(c => c.day_index === 6)) updateControlValue('endDay', 6);
+    else updateControlValue('endDay', 5);
 
     const pMap = { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "A": 11, "B": 12, "C": 13, "D": 14 };
-    let minP = 14, maxP = 0, hasValidData = false;
+    
+    let minP = 14; 
+    let maxP = 0; 
+    let hasValidData = false;
+
     allCourses.forEach(course => {
         const val = pMap[course.period];
         if (val !== undefined) {
@@ -628,6 +677,7 @@ function autoAdjustSettings() {
             hasValidData = true;
         }
     });
+
     if (hasValidData) {
         updateControlValue('startNum', minP);
         updateControlValue('endNum', maxP);
@@ -650,19 +700,34 @@ async function init() {
              drawWallpaper([]);
         }
 
-        const newData = await fetchCourseData();
+        const fetchResult = await fetchCourseData();
         const warningBar = document.getElementById('warning-bar');
+        const warningText = warningBar.querySelector('span');
 
-        if (Array.isArray(newData)) {
-            classCache = newData;
+        if (fetchResult.success) {
+            classCache = fetchResult.data;
             statusDiv.innerText = `抓取成功！共 ${classCache.length} 堂課`;
-            if(warningBar) warningBar.classList.add('hidden');
+            warningBar.classList.add('hidden');
             autoAdjustSettings(); 
-            applyTheme(currentTheme);
+            
+            if (classCache.length > 0) applyTheme(currentTheme); 
+            else renderCourseList(getAllCourses());
+            
+            drawWallpaper(getAllCourses());
         } else {
-            if(warningBar) warningBar.classList.remove('hidden');
-            if (classCache.length > 0) statusDiv.innerText = "顯示上次的紀錄";
-            else statusDiv.innerText = "無資料，請前往課程網頁面";
+            warningBar.classList.remove('hidden');
+            
+            if (fetchResult.reason === "NOT_LOGGED_IN") {
+                warningText.innerHTML = '⚠️ 偵測到選課頁面但無法讀取資料，請確認已登入課程網。';
+                statusDiv.innerText = "未登入 / 無權限";
+            } else if (fetchResult.reason === "WRONG_URL") {
+                warningText.innerHTML = '⚠️ 無法抓取新課表，目前顯示舊紀錄。<a href="https://course.ntu.edu.tw/result/final/table" target="_blank">前往課程網</a>開啟選課結果頁面。';
+                if (getAllCourses().length > 0) statusDiv.innerText = "顯示上次的紀錄";
+                else statusDiv.innerText = "無資料";
+            } else {
+                warningText.innerText = "⚠️ 系統錯誤，無法讀取頁面資料。";
+                statusDiv.innerText = "讀取失敗";
+            }
         }
         
         const themeSelect = document.getElementById('themeSelect');
